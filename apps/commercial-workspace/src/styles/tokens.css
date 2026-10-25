@@ -1,0 +1,59 @@
+/*
+ * Design System Bondly (§17) — Design Tokens em 3 camadas:
+ *  1) cores-base (paleta oficial), 2) tokens semânticos (tema claro/escuro),
+ *  3) tokens de componente. WCAG 2.2 AA como referência de contraste.
+ * Identidade reaproveitada do simulador HTML V1.0 (navy, amber, sand).
+ */
+
+/* ===== camada 1: cores-base ===== */
+:root {
+  --base-ink-950: #07080f; --base-ink-900: #11131f; --base-ink-800: #1b1a3a; --base-ink-700: #262a40;
+  --base-ink-600: #3e4152; --base-ink-500: #757a90; --base-ink-400: #8b90a8; --base-ink-300: #c2c5d6;
+  --base-ink-200: #c9cce8; --base-ink-100: #f2f3f8;
+  --base-sand-100: #f6f4ee; --base-sand-200: #e1ddd0; --base-white: #ffffff; --base-black: #0b0b12;
+  --base-navy-700: #2a2470; --base-navy-800: #1b1a3a; --base-brand-500: #ffc81e; --base-brand-700: #8a6400;
+  --base-green-400: #3dd68c; --base-green-700: #1e9e3e; --base-amber-500: #e0a100; --base-amber-700: #b8730a;
+  --base-red-400: #ff5c7a; --base-red-700: #b4362b; --base-blue-400: #6ea8ff; --base-blue-700: #2c5aa0;
+  --base-purple-400: #a78bfa; --base-purple-700: #6d28d9;
+
+  /* tipografia / espaçamento / raio (tokens de base) */
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  --font-display: "Anton", Impact, sans-serif;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  --radius-sm: 9px; --radius-md: 12px; --radius-lg: 14px; --radius-pill: 999px;
+  --fs-xs: 12px; --fs-sm: 13px; --fs-base: 15px; --fs-lg: 17px; --fs-xl: 20px; --fs-2xl: 24px;
+}
+
+/* ===== camada 2: tokens semânticos — tema escuro (padrão) ===== */
+:root, :root[data-theme="dark"] {
+  --bg-primary: var(--base-ink-950); --bg-secondary: var(--base-ink-900); --bg-tertiary: var(--base-ink-700);
+  --surface: var(--base-ink-900); --surface-elevated: var(--base-ink-800);
+  --text-primary: var(--base-ink-100); --text-secondary: var(--base-ink-300); --text-muted: var(--base-ink-400);
+  --text-on-brand: var(--base-black); --text-on-deep: var(--base-white);
+  --border: var(--base-ink-700); --border-strong: var(--base-ink-400);
+  --brand: var(--base-brand-500); --brand-text: var(--base-brand-500); --deep: var(--base-navy-700); --on-deep: var(--base-white);
+  --btn-primary-bg: var(--base-brand-500); --btn-primary-text: var(--base-black);
+  --success: var(--base-green-400); --success-soft: rgba(61,214,140,.14);
+  --warning: var(--base-amber-500); --warning-soft: rgba(255,200,30,.14);
+  --error: var(--base-red-400); --error-soft: rgba(255,92,122,.14);
+  --info: var(--base-blue-400); --info-soft: rgba(110,168,255,.14);
+  --focus-ring: var(--base-brand-500);
+  color-scheme: dark;
+}
+
+/* ===== camada 2: tokens semânticos — tema claro ===== */
+:root[data-theme="light"] {
+  --bg-primary: var(--base-sand-100); --bg-secondary: var(--base-white); --bg-tertiary: #eeebe2;
+  --surface: var(--base-white); --surface-elevated: var(--base-white);
+  --text-primary: #12131c; --text-secondary: var(--base-ink-600); --text-muted: var(--base-ink-500);
+  --text-on-brand: var(--base-black); --text-on-deep: var(--base-white);
+  --border: var(--base-sand-200); --border-strong: var(--base-ink-500);
+  --brand: var(--base-brand-500); --brand-text: var(--base-brand-700); --deep: var(--base-navy-700); --on-deep: var(--base-white);
+  --btn-primary-bg: var(--base-navy-700); --btn-primary-text: var(--base-white);
+  --success: var(--base-green-700); --success-soft: #e6f4e6;
+  --warning: var(--base-amber-700); --warning-soft: #fbf0d9;
+  --error: var(--base-red-700); --error-soft: #f9e4e1;
+  --info: var(--base-blue-700); --info-soft: #e6edf8;
+  --focus-ring: var(--base-navy-700);
+  color-scheme: light;
+}

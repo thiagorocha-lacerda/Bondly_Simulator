@@ -1,0 +1,22 @@
+{
+  "name": "bondly-commercial-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Bondly 2027 — plataforma comercial: Pricing Engine independente + Commercial Workspace.",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @bondly/pricing-engine",
+    "test:engine": "npm run test --workspace @bondly/pricing-engine",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true
+  }
+}
