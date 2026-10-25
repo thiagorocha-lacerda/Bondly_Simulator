@@ -101,7 +101,7 @@ export function App() {
             </button>
           </>
         )}
-        <span style={{ flex: 1 }} />
+        {internal && <span style={{ flex: 1 }} />}
         <button type="button" aria-current={audience === 'internal' ? 'step' : undefined} onClick={() => setAudience('internal')}>
           Visão interna
         </button>
