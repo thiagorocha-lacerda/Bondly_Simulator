@@ -1,0 +1,35 @@
+# Render Blueprint — Bondly Commercial Platform (§27)
+# Deploy como Static Site: a app é uma SPA estática (Cenário A, sem backend/segredos).
+# A Render roda o build no monorepo e publica apenas o dist/ do Commercial Workspace.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: bondly-simulator
+    runtime: static
+    # Build do monorepo (npm workspaces). O Pricing Engine é resolvido pela fonte no build do Vite.
+    buildCommand: npm ci && npm run build --workspace @bondly/commercial-workspace
+    staticPublishPath: apps/commercial-workspace/dist
+    # Node 20+ (motor e workspace exigem >=20)
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+    # SPA: todas as rotas servem index.html, SEM interceptar os assets com hash (§27.1)
+    routes:
+      - type: rewrite
+        source: /assets/*
+        destination: /assets/*
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Cabeçalhos de segurança/caching (§27.4/§27.7)
+    headers:
+      - path: /assets/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin

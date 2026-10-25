@@ -6,9 +6,9 @@ construída do zero com o simulador HTML V1.0 como referência funcional e finan
 ```
 bondly-commercial-platform/
 ├── packages/pricing-engine/      motor financeiro TS puro (fonte única de verdade) — 40 testes
-├── apps/commercial-workspace/    app React + Vite consumindo o motor (Vercel-ready)
+├── apps/commercial-workspace/    app React + Vite consumindo o motor (Render-ready)
 ├── docs/                         auditoria, execução/deploy, checklist
-└── vercel.json                   configuração de deploy (SPA fallback)
+└── render.yaml                   configuração de deploy Render (Static Site, SPA)
 ```
 
 ## Arquitetura
@@ -34,7 +34,7 @@ Duas camadas com separação obrigatória (prompt §2):
 | 6 | Documentação | ✅ auditoria + execução/deploy + READMEs |
 | 7 | Relatório de auditoria (comparação com o HTML) | ✅ `docs/01` |
 | 8 | Pacote final executável | ✅ monorepo buildável |
-| 9 | Deploy na Vercel | ⏳ **pronto, não executado** — requer acesso à conta (§27.9) |
+| 9 | Deploy na Render | ⏳ **pronto, não executado** — requer acesso à conta (§27.9) |
 
 Ver `docs/02-execucao-e-deploy.md` para rodar, buildar e publicar.
 
@@ -44,5 +44,5 @@ Ver `docs/02-execucao-e-deploy.md` para rodar, buildar e publicar.
 npm install
 npm run test                                              # motor: 40 testes
 npm run dev --workspace @bondly/commercial-workspace      # http://127.0.0.1:5173
-npm run build --workspace @bondly/commercial-workspace    # dist/ Vercel-ready
+npm run build --workspace @bondly/commercial-workspace    # dist/ Render-ready
 ```

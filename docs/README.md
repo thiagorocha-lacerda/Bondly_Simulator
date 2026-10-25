@@ -5,7 +5,7 @@
 | Doc | Conteúdo | §23 |
 |---|---|---|
 | [01 — Auditoria do HTML original](./01-auditoria-html-original.md) | Regras extraídas, matriz de rastreabilidade, divergências | 23.5 (parcial), Relatório §24.7 |
-| [02 — Execução e deploy](./02-execucao-e-deploy.md) | Comandos, config Vercel, rollback, limitações | 23.14, 23.15 |
+| [02 — Execução e deploy](./02-execucao-e-deploy.md) | Comandos, config Render, rollback, limitações | 23.14, 23.15 |
 | [03 — Contratos de dados](./03-contratos-de-dados.md) | `PricingInput`/`PricingResult` e auxiliares | 23.4 |
 | [04 — Regras financeiras e premissas](./04-regras-financeiras-e-premissas.md) | Premissas v15, regras §7, precisão, versionamento | 23.5, 23.6 |
 | [05 — Módulos, validação e fluxos](./05-modulos-validacao-fluxos.md) | Catálogo, dependências, maturidade, validação técnica, jornada | 23.7, 23.8, 23.9 |

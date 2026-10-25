@@ -1,7 +1,7 @@
 name: CI
 
 # Executa typecheck/testes/build antes de qualquer versão ser considerada apta à publicação
-# (prompt §27.3). A Vercel só deve promover para produção um commit que passou por aqui.
+# (prompt §27.3). A Render só deve promover para produção (auto-deploy no push) um commit que passou por aqui.
 # (Lint/ESLint ainda não configurado — ver roadmap docs/08; o typecheck strict cobre boa parte.)
 
 on:

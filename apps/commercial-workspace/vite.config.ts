@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 
 /**
  * O Commercial Workspace resolve o Pricing Engine pela sua FONTE TypeScript (Vite transpila),
- * mantendo tipos vivos e um motor só — sem build intermediário em dev. A Vercel compila o mesmo
+ * mantendo tipos vivos e um motor só — sem build intermediário em dev. A Render compila o mesmo
  * source no build (§27.1: pacotes compartilhados resolvidos no build).
  */
 export default defineConfig({

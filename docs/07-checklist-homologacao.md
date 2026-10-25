@@ -1,12 +1,12 @@
 # Checklist de homologação em produção (§27.8)
 
-Executar **na URL real da Vercel**, não em localhost. Marque cada item. Pré-condição: deploy efetuado
-(hoje **pendente** — requer acesso à conta Vercel, §27.9).
+Executar **na URL real da Render** (`*.onrender.com`), não em localhost. Marque cada item. Pré-condição: deploy efetuado
+(hoje **pendente** — requer acesso à conta Render, §27.9).
 
 | # | Verificação | Como validar | OK |
 |---|---|---|----|
 | 1 | Carregamento inicial e navegação | Abrir a URL; alternar Modo rápido ↔ avançado; dados preservados | ☐ |
-| 2 | Refresh em rotas internas e links diretos | Dar refresh na página; abrir link direto — SPA fallback serve `index.html` (ver `vercel.json`) | ☐ |
+| 2 | Refresh em rotas internas e links diretos | Dar refresh na página; abrir link direto — SPA fallback serve `index.html` (rewrite em `render.yaml`) | ☐ |
 | 3 | Seleção dos 5 módulos e complexidade | Marcar/desmarcar módulos; conferir aviso de dependência (Engajamento sem Pontos) e score | ☐ |
 | 4 | Pricing Engine e conciliação | Conferir que Setup, mensalidade e TCV do dashboard = pré-visualização = PDF; margem 70%/60% coerente | ☐ |
 | 5 | Visão interna × externa | Alternar audiência; a externa oculta custos/margens/fees; o PDF idem | ☐ |
@@ -14,7 +14,7 @@ Executar **na URL real da Vercel**, não em localhost. Marque cada item. Pré-co
 | 7 | Light/Dark, desktop e mobile | Trocar tema; testar em viewport mobile; sem quebra de layout | ☐ |
 | 8 | Salvamento e recuperação | Recarregar a página e confirmar que a configuração persiste (localStorage, Cenário A) | ☐ |
 | 9 | Console e logs sem erros críticos | DevTools → Console limpo; sem exceções no carregamento/geração de PDF | ☐ |
-| 10 | Variáveis e ausência de segredos no bundle | Inspecionar o bundle: nenhum token/credencial; nenhuma `VITE_*` sensível | ☐ |
+| 10 | Variáveis e ausência de segredos no bundle | Inspecionar o bundle: nenhum token/credencial; nenhuma `VITE_*` sensível (SPA estática não requer env) | ☐ |
 | 11 | Preview e Production | Abrir um PR → deploy de Preview; promover para Production; ambos acessíveis | ☐ |
 | 12 | Rollback documentado e verificável | Executar o rollback (ver `docs/02`) num deploy de teste e revalidar itens 1–4 | ☐ |
 

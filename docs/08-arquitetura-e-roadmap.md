@@ -10,7 +10,7 @@ bondly-commercial-platform/
 ├── apps/commercial-workspace/    CAMADA 2 — interface (React + Vite)
 ├── packages/{shared-types,business-rules,ui}/  reservados para evolução
 ├── docs/                         documentação
-└── vercel.json                   deploy (SPA)
+└── render.yaml                   deploy Render (Static Site, SPA)
 ```
 
 Regra de ouro: **toda regra financeira existe numa única fonte** (o Pricing Engine). O Commercial
@@ -31,12 +31,12 @@ Workspace consome os resultados do motor e **não reproduz fórmulas** (§20/§2
 - Resolve o motor pela **fonte TS** (alias Vite + tsconfig paths) — um motor só, tipos vivos.
 - Componentes: `Fields` (campos reutilizáveis), `QuickMode`/`AdvancedMode`, `ServicesPanel`,
   `CampaignPanel`, `B2cPanel`, `ResultsDashboard` (visão interna/externa), `PreviewModal` (fluxo PDF).
-- Persistência `localStorage` (Cenário A); tema claro/escuro; PDF via jsPDF lazy-loaded.
+- Persistência `localStorage` (Cenário A); tema claro/escuro; PDF via jsPDF lazy-loaded. Deploy como Static Site na Render (`render.yaml`).
 
 ## Roadmap de evolução (§23.16)
 
 ### Curto prazo
-- **Deploy na Vercel** (§27.9) — assim que houver acesso à conta/repositório.
+- **Deploy na Render** (§27.9) — assim que houver acesso à conta/repositório.
 - **Exportar/importar propostas** em JSON (portabilidade no Cenário A).
 - Expor matrizes B2C adicionais (fees, sensibilidade a ticket, ponto de equilíbrio) que o motor já
   calcula via `runB2c`.

@@ -8,7 +8,7 @@ import { brl, pct } from './defaults';
  * Visão comercial externa: não expõe custos, margens nem fees internos (§12/§16).
  *
  * jsPDF é carregado via import() dinâmico: fica fora do bundle principal e só é baixado quando
- * o usuário gera um PDF (code-splitting, §27.1 build Vercel).
+ * o usuário gera um PDF (code-splitting, §27.1 build Render).
  */
 export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF> {
   const { jsPDF: JsPDF } = await import('jspdf');
