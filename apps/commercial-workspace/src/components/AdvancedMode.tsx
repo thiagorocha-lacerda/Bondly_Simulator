@@ -1,6 +1,7 @@
 import type { PricingInput, CommunicationStrategy, CommercialOption, ModuleId } from '@bondly/pricing-engine';
 import { MODULE_CATALOG } from '@bondly/pricing-engine';
 import { NumberField, PercentField, Panel, Toggle, SelectField, TextField } from './Fields';
+import { useAudience } from '../app/audience';
 
 import type { InputPatch } from '../services/patch';
 
@@ -12,6 +13,7 @@ export function AdvancedMode(props: {
   onModules: (ids: ModuleId[]) => void;
 }) {
   const { input, update } = props;
+  const { internal } = useAudience();
   return (
     <>
       <Panel title="A implementação" sub="O que o cliente pede define a complexidade, o Setup e o markup sugerido.">
@@ -51,9 +53,11 @@ export function AdvancedMode(props: {
         <NumberField label="Horas de implantação" hint="Entram só no Setup (R$ 350/HH), nunca na mensalidade." value={input.complexity.implementationHours} min={0} step={5} onChange={(v) => update({ complexity: { implementationHours: v } })} />
       </Panel>
 
-      <div style={{ height: 16 }} />
+      {internal && (
+        <>
+          <div style={{ height: 16 }} />
 
-      <Panel title="Leitura de notas fiscais" sub="Custo de R$ 0,12 por nota lida; não gera receita direta.">
+          <Panel title="Leitura de notas fiscais" sub="Custo de R$ 0,12 por nota lida; não gera receita direta.">
         <Toggle label="Leitura de NF" value={input.invoices.enabled ? 1 : 0} options={[{ v: 1, label: 'Sim' }, { v: 0, label: 'Não' }]} onChange={(v) => update({ invoices: { enabled: v === 1 } })} />
         {input.invoices.enabled && (
           <>
@@ -96,6 +100,8 @@ export function AdvancedMode(props: {
       </Panel>
 
       <div style={{ height: 16 }} />
+        </>
+      )}
 
       <Panel title="A negociação" sub="Tudo o que muda o preço — e quem aprova.">
         <Toggle label="Opção comercial" value={input.negotiation.option} options={[{ v: 'floor', label: 'Piso' }, { v: 'recommended', label: 'Recomendado' }, { v: 'premium', label: 'Premium' }]} onChange={(v) => update({ negotiation: { option: v as CommercialOption } })} />

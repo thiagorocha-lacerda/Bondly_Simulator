@@ -119,14 +119,28 @@ export function App() {
           ) : (
             <>
               <AdvancedMode input={input} update={update} selectedModules={modules} onModules={setModules} />
-              <div style={{ height: 16 }} />
-              <ServicesPanel input={input} update={update} />
-              <div style={{ height: 16 }} />
-              <CampaignPanel input={input} update={update} />
-              <div style={{ height: 16 }} />
-              <B2cPanel input={b2c.input} include={b2c.include} set={b2c.set} setInclude={b2c.setInclude} />
+              {internal && (
+                <>
+                  <div style={{ height: 16 }} />
+                  <ServicesPanel input={input} update={update} />
+                  <div style={{ height: 16 }} />
+                  <CampaignPanel input={input} update={update} />
+                </>
+              )}
             </>
           )}
+
+          {/* Módulo de vendas Assinaturas B2C — habilitável em AMBOS os modos. */}
+          <div style={{ height: 16 }} />
+          <B2cPanel
+            input={b2c.input}
+            enabled={b2c.enabled}
+            include={b2c.include}
+            set={b2c.set}
+            setEnabled={b2c.setEnabled}
+            setInclude={b2c.setInclude}
+          />
+
           <div className="actions">
             <button className="cta" type="button" onClick={() => setPreview(true)}>
               Pré-visualizar → gerar PDF
@@ -147,7 +161,7 @@ export function App() {
         </div>
       </div>
 
-      {preview && <PreviewModal input={input} b2cInput={b2c.include ? b2c.input : undefined} onClose={() => setPreview(false)} />}
+      {preview && <PreviewModal input={input} b2cInput={b2c.enabled && b2c.include ? b2c.input : undefined} onClose={() => setPreview(false)} />}
     </div>
   );
 }

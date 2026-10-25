@@ -29,4 +29,38 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
     await user.click(screen.getByRole('button', { name: /Visão interna/i }));
     expect(screen.getByRole('heading', { name: /Evidência comercial — ARKA/i })).toBeInTheDocument();
   });
+
+  it('módulo B2C aparece no modo rápido (habilitável nos dois modos)', () => {
+    render(
+      <AudienceProvider initial="internal">
+        <App />
+      </AudienceProvider>,
+    );
+    // começa no modo rápido
+    expect(screen.getByRole('tab', { name: /Modo rápido/i })).toHaveAttribute('aria-current', 'step');
+    expect(screen.getByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
+  });
+
+  it('visão comercial esconde os painéis de custo interno do modo avançado (Serviços/Campanha/NF/Comunicação)', async () => {
+    const user = userEvent.setup();
+    render(
+      <AudienceProvider initial="internal">
+        <App />
+      </AudienceProvider>,
+    );
+    await user.click(screen.getByRole('tab', { name: /Modo avançado/i }));
+    // interna: painéis internos presentes
+    expect(screen.getByRole('heading', { name: /Serviços — recursos dedicados/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Campanhas de marketing/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Comunicação transacional/i })).toBeInTheDocument();
+
+    // comercial: somem
+    await user.click(screen.getByRole('button', { name: /Visão comercial/i }));
+    expect(screen.queryByRole('heading', { name: /Serviços — recursos dedicados/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Campanhas de marketing/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Comunicação transacional/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /Leitura de notas fiscais/i })).not.toBeInTheDocument();
+    // B2C permanece (é módulo de vendas, não custo interno)
+    expect(screen.getByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
+  });
 });

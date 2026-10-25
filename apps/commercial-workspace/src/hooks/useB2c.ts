@@ -3,6 +3,7 @@ import { normalizeB2cInput, CURRENT_PREMISES, type B2cInput } from '@bondly/pric
 
 const KEY = 'bondly-ws-b2c';
 const INCLUDE_KEY = 'bondly-ws-b2c-include';
+const ENABLED_KEY = 'bondly-ws-b2c-enabled';
 
 export const B2C_DEFAULTS: Partial<B2cInput> = {
   som: 2_400_000,
@@ -42,11 +43,21 @@ function loadInclude(): boolean {
   }
 }
 
+function loadEnabled(): boolean {
+  try {
+    return localStorage.getItem(ENABLED_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
 export interface UseB2c {
   readonly raw: Partial<B2cInput>;
   readonly input: B2cInput; // normalizado
+  readonly enabled: boolean; // módulo de vendas habilitado na simulação?
   readonly include: boolean; // entra no snapshot/PDF da proposta?
   set: (patch: Partial<B2cInput>) => void;
+  setEnabled: (on: boolean) => void;
   setInclude: (on: boolean) => void;
   reset: () => void;
 }
@@ -54,10 +65,12 @@ export interface UseB2c {
 /**
  * Fonte ÚNICA do estado B2C (§7.5). O painel edita e o fluxo de proposta (PreviewModal) lê o MESMO
  * estado — assim o funil B2C entra no snapshot/PDF quando `include` está ligado. Persistência local.
+ * `enabled` habilita o módulo de vendas (mostra os campos nos dois modos); `include` leva ao PDF.
  */
 export function useB2c(): UseB2c {
   const [raw, setRaw] = useState<Partial<B2cInput>>(loadRaw);
   const [include, setIncludeState] = useState<boolean>(loadInclude);
+  const [enabled, setEnabledState] = useState<boolean>(loadEnabled);
 
   const set = useCallback((patch: Partial<B2cInput>) => {
     setRaw((prev) => {
@@ -69,6 +82,24 @@ export function useB2c(): UseB2c {
       }
       return next;
     });
+  }, []);
+
+  const setEnabled = useCallback((on: boolean) => {
+    setEnabledState(on);
+    try {
+      localStorage.setItem(ENABLED_KEY, on ? '1' : '0');
+    } catch {
+      /* ignore */
+    }
+    // Desabilitar o módulo também o tira da proposta — não dá para incluir o que está desligado.
+    if (!on) {
+      setIncludeState(false);
+      try {
+        localStorage.setItem(INCLUDE_KEY, '0');
+      } catch {
+        /* ignore */
+      }
+    }
   }, []);
 
   const setInclude = useCallback((on: boolean) => {
@@ -85,13 +116,15 @@ export function useB2c(): UseB2c {
   const reset = useCallback(() => {
     setRaw(B2C_DEFAULTS);
     setIncludeState(false);
+    setEnabledState(false);
     try {
       localStorage.removeItem(KEY);
       localStorage.removeItem(INCLUDE_KEY);
+      localStorage.removeItem(ENABLED_KEY);
     } catch {
       /* ignore */
     }
   }, []);
 
-  return { raw, input, include, set, setInclude, reset };
+  return { raw, input, enabled, include, set, setEnabled, setInclude, reset };
 }
