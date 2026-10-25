@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { PricingInput } from '@bondly/pricing-engine';
+import type { PricingInput, B2cInput } from '@bondly/pricing-engine';
 import { createProposalSnapshot, formatProposalId } from '@bondly/pricing-engine';
 import { generateProposalPdf } from '../services/pdf';
 import { brl } from '../services/defaults';
@@ -21,9 +21,13 @@ function nextSequence(): number {
  * Ao abrir, congela um snapshot imutável; qualquer alteração posterior invalida a confirmação
  * (o modal é fechado e reaberto com um novo snapshot).
  */
-export function PreviewModal(props: { input: PricingInput; onClose: () => void }) {
+export function PreviewModal(props: { input: PricingInput; b2cInput?: B2cInput | undefined; onClose: () => void }) {
   const [snap] = useState(() =>
-    createProposalSnapshot({ id: formatProposalId(nextSequence()), input: props.input }),
+    createProposalSnapshot({
+      id: formatProposalId(nextSequence()),
+      input: props.input,
+      ...(props.b2cInput ? { b2cInput: props.b2cInput } : {}),
+    }),
   );
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -54,6 +58,9 @@ export function PreviewModal(props: { input: PricingInput; onClose: () => void }
             <tr className="sum"><td>Setup</td><td className="num">{brl(r.setupClient)}</td></tr>
             <tr><td>Valor mensal estimado</td><td className="num">{brl(r.core + r.servicesMrr)}/mês</td></tr>
             <tr className="sum"><td>TCV ao cliente</td><td className="num">{brl(r.tcvClient)}</td></tr>
+            {snap.b2c && (
+              <tr><td>Assinaturas B2C · resultado Bondly H2</td><td className="num">{brl(snap.b2c.result.tot.total)}</td></tr>
+            )}
           </tbody>
         </table>
 

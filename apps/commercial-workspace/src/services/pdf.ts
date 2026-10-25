@@ -80,6 +80,18 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
   if (r.servicesMrr > 0) row('Recursos dedicados', `${brl(r.servicesMrr)}/mês`);
   if (snap.input.negotiation.term > 12) row('Condição por prazo', pct(r.termDiscount));
 
+  // Módulo B2C (quando incluído na proposta)
+  if (snap.b2c) {
+    const b = snap.b2c.result.tot;
+    y += 8;
+    rule();
+    line('Assinaturas B2C (jul–dez/2027)', 13, true);
+    row('Assinantes ativos em dez', Math.round(snap.b2c.result.tot.end).toLocaleString('pt-BR'));
+    row('Valor transacionado no semestre', brl(b.gmv));
+    row('Receita de processamento', brl(b.rev));
+    row('Resultado Bondly no semestre', brl(b.total));
+  }
+
   // Rodapé de reprodutibilidade
   y = doc.internal.pageSize.getHeight() - 40;
   doc.setFont('helvetica', 'normal');

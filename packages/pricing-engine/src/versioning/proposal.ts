@@ -11,6 +11,13 @@ import type { PremiseTable } from '../premises/premises.js';
 import { CURRENT_PREMISES, hashPremiseTable } from '../premises/premises.js';
 import { ENGINE_VERSION } from '../version.js';
 import { calculate } from '../calculations/calculate.js';
+import { runB2c, type B2cInput, type B2cResult } from '../modules/b2c.js';
+
+/** Bloco B2C opcional de uma proposta: input normalizado + projeção, congelados no snapshot. */
+export interface ProposalB2c {
+  readonly input: B2cInput;
+  readonly result: B2cResult;
+}
 
 export interface ProposalSnapshot {
   readonly id: string; // BONDLY-2027-NNNNNN
@@ -22,6 +29,7 @@ export interface ProposalSnapshot {
   readonly premises: PremiseTable; // cópia congelada
   readonly input: PricingInput;
   readonly result: PricingResult;
+  readonly b2c?: ProposalB2c; // módulo B2C (quando a proposta o inclui)
 }
 
 /** Formata um identificador único de proposta `BONDLY-2027-NNNNNN` (§15). */
@@ -40,9 +48,13 @@ export function createProposalSnapshot(args: {
   premises?: PremiseTable;
   revision?: number;
   issuedAt?: string;
+  b2cInput?: B2cInput;
 }): ProposalSnapshot {
   const premises = args.premises ?? CURRENT_PREMISES;
   const result = calculate(args.input, premises);
+  const b2c: ProposalB2c | undefined = args.b2cInput
+    ? { input: args.b2cInput, result: runB2c(args.b2cInput, premises) }
+    : undefined;
   return Object.freeze({
     id: args.id,
     revision: args.revision ?? 1,
@@ -53,6 +65,7 @@ export function createProposalSnapshot(args: {
     premises,
     input: args.input,
     result,
+    ...(b2c ? { b2c } : {}),
   });
 }
 
@@ -87,5 +100,6 @@ export function reviseProposal(
     input: previous.input,
     premises: newPremises,
     revision: previous.revision + 1,
+    ...(previous.b2c ? { b2cInput: previous.b2c.input } : {}),
   });
 }

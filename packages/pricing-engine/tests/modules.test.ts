@@ -14,6 +14,8 @@ import {
   CURRENT_PREMISES,
   freezePremiseTable,
   PREMISES_V15,
+  normalizeB2cInput,
+  runB2c,
 } from '../src/index.js';
 import type { PricingInput, ModuleId } from '../src/index.js';
 
@@ -167,5 +169,26 @@ describe('Versionamento e snapshot imutável (§27.6)', () => {
     const a = PREMISES_V15.hash;
     const b = freezePremiseTable({ ...PREMISES_V15, hash: '', taxRate: { ...PREMISES_V15.taxRate, value: 0.2 } }).hash;
     expect(a).not.toBe(b);
+  });
+
+  it('inclui o funil B2C no snapshot quando fornecido, e o preserva na revisão', () => {
+    const b2cInput = normalizeB2cInput(
+      { som: 2_400_000, conv: 0.01, ticket: 10, churn: 0.08, fee: 0.1, weights: [10, 14, 17, 19, 20, 20] },
+      CURRENT_PREMISES,
+    );
+    const snap = createProposalSnapshot({ id: formatProposalId(3), input: inputWithModules(2), b2cInput });
+    expect(snap.b2c).toBeDefined();
+    expect(snap.b2c!.result.rows.length).toBe(6);
+    // projeção congelada reproduz runB2c sobre as mesmas premissas
+    expect(snap.b2c!.result.tot.total).toBeCloseTo(runB2c(b2cInput, snap.premises).tot.total, 6);
+    // a revisão mantém o bloco B2C
+    const rev = reviseProposal(snap);
+    expect(rev.b2c).toBeDefined();
+    expect(rev.b2c!.input.som).toBe(b2cInput.som);
+  });
+
+  it('omite o bloco B2C quando não fornecido', () => {
+    const snap = createProposalSnapshot({ id: formatProposalId(4), input: inputWithModules(2) });
+    expect(snap.b2c).toBeUndefined();
   });
 });

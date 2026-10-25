@@ -80,7 +80,7 @@ export {
   reviseProposal,
   formatProposalId,
 } from './versioning/proposal.js';
-export type { ProposalSnapshot } from './versioning/proposal.js';
+export type { ProposalSnapshot, ProposalB2c } from './versioning/proposal.js';
 
 // Utilidades monetárias
 export { roundCurrency, toCents, fromCents, clamp, pctToFraction, finiteOr } from './calculations/money.js';

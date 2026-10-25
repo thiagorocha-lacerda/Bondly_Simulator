@@ -1,66 +1,31 @@
-import { useMemo, useState } from 'react';
-import { runB2c, normalizeB2cInput, CURRENT_PREMISES, type B2cInput, type AntifraudMethod, type B2cScope } from '@bondly/pricing-engine';
+import { useMemo } from 'react';
+import { runB2c, CURRENT_PREMISES, type B2cInput, type AntifraudMethod, type B2cScope } from '@bondly/pricing-engine';
 import { Panel, NumberField, PercentField, Toggle } from './Fields';
 import { brl, pct, n0 } from '../services/defaults';
 
-const KEY = 'bondly-ws-b2c';
 const B2C_MONTHS = ['jul/27', 'ago/27', 'set/27', 'out/27', 'nov/27', 'dez/27'];
 
-const DEFAULTS: Partial<B2cInput> = {
-  som: 2_400_000,
-  conv: 0.01,
-  ticket: 10,
-  churn: 0.08,
-  fee: 0.1,
-  gateway: 0.05,
-  tax: 0.15,
-  minFee: 2,
-  minuShare: 0.5,
-  commission: 0,
-  method: 'progressiva',
-  scope: 'primeira',
-  validation: 0,
-  cardReuse: 0.005,
-  setup: 3000,
-  minMargin: 1500,
-  addCost: 0,
-  weights: [10, 14, 17, 19, 20, 20],
-};
-
-function load(): Partial<B2cInput> {
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<B2cInput>) } : DEFAULTS;
-  } catch {
-    return DEFAULTS;
-  }
-}
-
-/** Assinaturas B2C (§7.5) — módulo H3 candidato. Estado próprio; projeção via motor (`runB2c`). */
-export function B2cPanel() {
-  const [raw, setRaw] = useState<Partial<B2cInput>>(load);
-
-  const set = (patch: Partial<B2cInput>) => {
-    setRaw((prev) => {
-      const next = { ...prev, ...patch };
-      try {
-        localStorage.setItem(KEY, JSON.stringify(next));
-      } catch {
-        /* ignore */
-      }
-      return next;
-    });
-  };
-
-  const { result, input } = useMemo(() => {
-    const normalized = normalizeB2cInput(raw, CURRENT_PREMISES);
-    return { result: runB2c(normalized, CURRENT_PREMISES), input: normalized };
-  }, [raw]);
+/** Assinaturas B2C (§7.5) — módulo H3 candidato. Estado vem do hook useB2c (fonte única); projeção via `runB2c`. */
+export function B2cPanel(props: {
+  input: B2cInput;
+  include: boolean;
+  set: (patch: Partial<B2cInput>) => void;
+  setInclude: (on: boolean) => void;
+}) {
+  const { input, set } = props;
+  const result = useMemo(() => runB2c(input, CURRENT_PREMISES), [input]);
   const t = result.tot;
   const cls = (v: number): string => (v < -0.005 ? 'bad' : v > 0.005 ? 'ok' : 'info');
 
   return (
     <Panel title="Assinaturas B2C — módulo H3 candidato (jul–dez/2027)" sub="A Bondly recebe o fee de processamento, paga gateway, antifraude e impostos, e divide a margem positiva com a Minu.">
+      <Toggle
+        label="Incluir na proposta (snapshot e PDF)"
+        hint="Quando ligado, o funil B2C é congelado no snapshot da proposta e aparece no PDF."
+        value={props.include ? 1 : 0}
+        options={[{ v: 1, label: 'Sim' }, { v: 0, label: 'Não' }]}
+        onChange={(v) => props.setInclude(v === 1)}
+      />
       <Toggle label="Fee de processamento" value={input.fee} options={[{ v: 0.1, label: '10% · oficial' }, { v: 0.125, label: '12,5%' }, { v: 0.15, label: '15%' }]} onChange={(v) => set({ fee: v })} />
       <NumberField label="Base elegível (SOM)" value={input.som} min={0} step={1000} onChange={(v) => set({ som: v })} />
       <PercentField label="Meta de conversão em dez" value={input.conv} step={0.1} onChange={(v) => set({ conv: v })} />

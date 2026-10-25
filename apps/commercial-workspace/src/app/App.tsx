@@ -3,6 +3,7 @@ import type { ModuleId } from '@bondly/pricing-engine';
 import { MODULE_CATALOG, validateDependencies } from '@bondly/pricing-engine';
 import { usePricing } from '../hooks/usePricing';
 import { useTheme } from '../hooks/useTheme';
+import { useB2c } from '../hooks/useB2c';
 import { QuickMode } from '../components/QuickMode';
 import { AdvancedMode } from '../components/AdvancedMode';
 import { ResultsDashboard } from '../components/ResultsDashboard';
@@ -29,6 +30,7 @@ function loadModules(): ModuleId[] {
 export function App() {
   const { input, result, update, reset } = usePricing();
   const [theme, setTheme] = useTheme();
+  const b2c = useB2c();
   const [mode, setMode] = useState<Mode>('quick');
   const [audience, setAudience] = useState<Audience>('internal');
   const [preview, setPreview] = useState(false);
@@ -100,7 +102,7 @@ export function App() {
               <div style={{ height: 16 }} />
               <CampaignPanel input={input} update={update} />
               <div style={{ height: 16 }} />
-              <B2cPanel />
+              <B2cPanel input={b2c.input} include={b2c.include} set={b2c.set} setInclude={b2c.setInclude} />
             </>
           )}
           <div className="actions">
@@ -123,7 +125,7 @@ export function App() {
         </div>
       </div>
 
-      {preview && <PreviewModal input={input} onClose={() => setPreview(false)} />}
+      {preview && <PreviewModal input={input} b2cInput={b2c.include ? b2c.input : undefined} onClose={() => setPreview(false)} />}
     </div>
   );
 }
