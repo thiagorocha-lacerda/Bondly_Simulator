@@ -2,15 +2,16 @@ import { useMemo } from 'react';
 import type { PricingInput } from '@bondly/pricing-engine';
 import { defaultScenarios } from '@bondly/pricing-engine';
 import { brl, pct } from '../services/defaults';
+import { useAudience } from '../app/audience';
 
 /**
  * Comparação de cenários (§13): conservador (−30% MAU) / base / otimista (+30% MAU).
  * Usa `defaultScenarios()` do engine — o MESMO motor recalcula cada cenário, sem fórmula paralela.
  * Visão comercial (external) oculta Margem técnica e Status (números internos §12/§16), igual ao PDF.
  */
-export function ScenarioPanel(props: { input: PricingInput; audience: 'internal' | 'external' }) {
+export function ScenarioPanel(props: { input: PricingInput }) {
   const scenarios = useMemo(() => defaultScenarios(props.input), [props.input]);
-  const internal = props.audience === 'internal';
+  const { internal } = useAudience();
   const label: Record<string, string> = {
     conservador: 'Conservador · −30% MAU',
     base: 'Base',

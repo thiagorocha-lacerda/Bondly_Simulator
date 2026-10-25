@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from './App';
+import { AudienceProvider } from './audience';
 
 /**
  * §12/§16 — o ArkaPanel é qualificação interna (pipeline, elegibilidade a orçamento) e NÃO pode
@@ -11,7 +12,11 @@ import { App } from './App';
 describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
   it('interna mostra o ARKA; comercial o oculta', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    render(
+      <AudienceProvider initial="internal">
+        <App />
+      </AudienceProvider>,
+    );
 
     // Começa em visão interna → ARKA visível
     expect(screen.getByRole('heading', { name: /Evidência comercial — ARKA/i })).toBeInTheDocument();

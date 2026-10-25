@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { normalizeB2cInput, CURRENT_PREMISES } from '@bondly/pricing-engine';
 import { PreviewModal } from './PreviewModal';
+import { AudienceProvider, type Audience } from '../app/audience';
 import { DEFAULT_INPUT } from '../services/defaults';
 
 /**
@@ -14,23 +15,37 @@ describe('PreviewModal — confidencialidade por audience (§12/§16)', () => {
     { som: 2_400_000, conv: 0.01, ticket: 10, churn: 0.08, fee: 0.1, weights: [10, 14, 17, 19, 20, 20] },
     CURRENT_PREMISES,
   );
+  const renderWith = (audience: Audience, b2c = b2cInput as typeof b2cInput | undefined) =>
+    render(
+      <AudienceProvider initial={audience}>
+        <PreviewModal input={DEFAULT_INPUT} b2cInput={b2c} onClose={() => {}} />
+      </AudienceProvider>,
+    );
 
   it('visão interna: expõe o resultado Bondly H2 do B2C', () => {
-    render(<PreviewModal input={DEFAULT_INPUT} b2cInput={b2cInput} audience="internal" onClose={() => {}} />);
+    renderWith('internal');
     expect(screen.getByText(/resultado Bondly H2/i)).toBeInTheDocument();
     expect(screen.queryByText(/ativos em dez/i)).not.toBeInTheDocument();
   });
 
   it('visão comercial: NÃO expõe o resultado Bondly; mostra só assinantes ativos', () => {
-    render(<PreviewModal input={DEFAULT_INPUT} b2cInput={b2cInput} audience="external" onClose={() => {}} />);
+    renderWith('external');
     expect(screen.queryByText(/resultado Bondly H2/i)).not.toBeInTheDocument();
     expect(screen.getByText(/ativos em dez/i)).toBeInTheDocument();
   });
 
   it('sem B2C incluído: nenhuma linha B2C em qualquer visão', () => {
-    const { rerender } = render(<PreviewModal input={DEFAULT_INPUT} audience="external" onClose={() => {}} />);
+    const { rerender } = render(
+      <AudienceProvider initial="external">
+        <PreviewModal input={DEFAULT_INPUT} onClose={() => {}} />
+      </AudienceProvider>,
+    );
     expect(screen.queryByText(/Assinaturas B2C/i)).not.toBeInTheDocument();
-    rerender(<PreviewModal input={DEFAULT_INPUT} audience="internal" onClose={() => {}} />);
+    rerender(
+      <AudienceProvider initial="internal">
+        <PreviewModal input={DEFAULT_INPUT} onClose={() => {}} />
+      </AudienceProvider>,
+    );
     expect(screen.queryByText(/Assinaturas B2C/i)).not.toBeInTheDocument();
   });
 });

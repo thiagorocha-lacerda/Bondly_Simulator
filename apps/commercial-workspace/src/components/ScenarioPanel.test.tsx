@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { ScenarioPanel } from './ScenarioPanel';
+import { AudienceProvider } from '../app/audience';
 import { DEFAULT_INPUT } from '../services/defaults';
 
 /**
@@ -9,13 +10,21 @@ import { DEFAULT_INPUT } from '../services/defaults';
  */
 describe('ScenarioPanel — confidencialidade por audience (§12/§16)', () => {
   it('visão interna: mostra Margem técnica e Status', () => {
-    render(<ScenarioPanel input={DEFAULT_INPUT} audience="internal" />);
+    render(
+      <AudienceProvider initial="internal">
+        <ScenarioPanel input={DEFAULT_INPUT} />
+      </AudienceProvider>,
+    );
     expect(screen.getByText(/Margem técnica/i)).toBeInTheDocument();
     expect(screen.getByText(/^Status$/i)).toBeInTheDocument();
   });
 
   it('visão comercial: oculta Margem técnica e Status; mantém Core MRR e TCV', () => {
-    render(<ScenarioPanel input={DEFAULT_INPUT} audience="external" />);
+    render(
+      <AudienceProvider initial="external">
+        <ScenarioPanel input={DEFAULT_INPUT} />
+      </AudienceProvider>,
+    );
     expect(screen.queryByText(/Margem técnica/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^Status$/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Core MRR/i)).toBeInTheDocument();

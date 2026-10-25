@@ -1,13 +1,14 @@
 import type { PricingResult } from '@bondly/pricing-engine';
 import { brl, pct } from '../services/defaults';
+import { useAudience } from '../app/audience';
 
 const statusClass = (s: PricingResult['marginStatus']): string =>
   s === 'SAUDÁVEL' ? 'ok' : s === 'REVISAR' ? 'warn' : s === 'REPRECIFICAR' ? 'bad' : 'info';
 
-/** Dashboard de resultados (§12). `audience`='internal' mostra custos/margens; 'external' só o autorizado. */
-export function ResultsDashboard(props: { result: PricingResult; users: number; audience: 'internal' | 'external' }) {
+/** Dashboard de resultados (§12). Em visão interna mostra custos/margens; em comercial só o autorizado. */
+export function ResultsDashboard(props: { result: PricingResult; users: number }) {
   const r = props.result;
-  const internal = props.audience === 'internal';
+  const { internal } = useAudience();
   // Core MRR por usuário elegível. Usa a base real (props.users), não uma reconstrução a partir do MAU.
   const perUser = props.users > 0 && r.core > 0 ? (r.core / props.users).toFixed(2) : '—';
   return (

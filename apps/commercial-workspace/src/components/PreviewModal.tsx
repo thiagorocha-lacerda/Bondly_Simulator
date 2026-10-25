@@ -3,6 +3,7 @@ import type { PricingInput, B2cInput } from '@bondly/pricing-engine';
 import { createProposalSnapshot, formatProposalId } from '@bondly/pricing-engine';
 import { generateProposalPdf } from '../services/pdf';
 import { brl } from '../services/defaults';
+import { useAudience } from '../app/audience';
 
 const SEQ_KEY = 'bondly-proposal-seq';
 
@@ -24,9 +25,9 @@ function nextSequence(): number {
 export function PreviewModal(props: {
   input: PricingInput;
   b2cInput?: B2cInput | undefined;
-  audience: 'internal' | 'external';
   onClose: () => void;
 }) {
+  const { internal } = useAudience();
   // Snapshot provisório só para exibir os números na conferência. ID real é atribuído ao gerar.
   const [preview] = useState(() =>
     createProposalSnapshot({
@@ -74,7 +75,7 @@ export function PreviewModal(props: {
             <tr><td>Valor mensal estimado</td><td className="num">{brl(r.core + r.servicesMrr)}/mês</td></tr>
             <tr className="sum"><td>TCV ao cliente</td><td className="num">{brl(r.tcvClient)}</td></tr>
             {preview.b2c && (
-              props.audience === 'internal' ? (
+              internal ? (
                 <tr><td>Assinaturas B2C · resultado Bondly H2</td><td className="num">{brl(preview.b2c.result.tot.total)}</td></tr>
               ) : (
                 // Visão comercial: NÃO expõe o resultado Bondly (número interno). Só volume ao cliente.

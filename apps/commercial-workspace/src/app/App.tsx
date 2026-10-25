@@ -4,6 +4,7 @@ import { MODULE_CATALOG, validateDependencies } from '@bondly/pricing-engine';
 import { usePricing } from '../hooks/usePricing';
 import { useTheme } from '../hooks/useTheme';
 import { useB2c } from '../hooks/useB2c';
+import { useAudience } from './audience';
 import { QuickMode } from '../components/QuickMode';
 import { AdvancedMode } from '../components/AdvancedMode';
 import { ResultsDashboard } from '../components/ResultsDashboard';
@@ -15,7 +16,6 @@ import { ArkaPanel } from '../components/ArkaPanel';
 import { ScenarioPanel } from '../components/ScenarioPanel';
 
 type Mode = 'quick' | 'advanced';
-type Audience = 'internal' | 'external';
 
 const MODULES_KEY = 'bondly-ws-modules';
 function loadModules(): ModuleId[] {
@@ -31,8 +31,8 @@ export function App() {
   const { input, result, update, reset } = usePricing();
   const [theme, setTheme] = useTheme();
   const b2c = useB2c();
+  const { audience, internal, setAudience } = useAudience();
   const [mode, setMode] = useState<Mode>('quick');
-  const [audience, setAudience] = useState<Audience>('internal');
   const [preview, setPreview] = useState(false);
   const [modules, setModulesState] = useState<ModuleId[]>(loadModules);
 
@@ -141,13 +141,13 @@ export function App() {
         </div>
 
         <div>
-          <ResultsDashboard result={result} users={input.volume.users} audience={audience} />
-          {audience === 'internal' && <ArkaPanel input={input} />}
-          <ScenarioPanel input={input} audience={audience} />
+          <ResultsDashboard result={result} users={input.volume.users} />
+          {internal && <ArkaPanel input={input} />}
+          <ScenarioPanel input={input} />
         </div>
       </div>
 
-      {preview && <PreviewModal input={input} b2cInput={b2c.include ? b2c.input : undefined} audience={audience} onClose={() => setPreview(false)} />}
+      {preview && <PreviewModal input={input} b2cInput={b2c.include ? b2c.input : undefined} onClose={() => setPreview(false)} />}
     </div>
   );
 }
