@@ -7,13 +7,21 @@ import { useAudience } from '../app/audience';
 
 const SEQ_KEY = 'bondly-proposal-seq';
 
-function nextSequence(): number {
+/** Próximo número da sequência SEM persistir (só leitura). Consumir via commitSequence após sucesso. */
+function peekNextSequence(): number {
   try {
-    const n = Number(localStorage.getItem(SEQ_KEY) ?? '0') + 1;
-    localStorage.setItem(SEQ_KEY, String(n));
-    return n;
+    return Number(localStorage.getItem(SEQ_KEY) ?? '0') + 1;
   } catch {
     return Math.floor(Math.random() * 999999) + 1;
+  }
+}
+
+/** Persiste o número consumido — chamado SÓ após o PDF gerar com sucesso, para não queimar IDs. */
+function commitSequence(n: number): void {
+  try {
+    localStorage.setItem(SEQ_KEY, String(n));
+  } catch {
+    /* ignore */
   }
 }
 
@@ -39,7 +47,9 @@ export function PreviewModal(props: {
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [issuedId, setIssuedId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const r = preview.result;
+  const hasClient = !!preview.input.arka?.clientName?.trim();
 
   // Acessibilidade: ao fechar o modal, devolve o foco ao elemento que o abriu (evita armadilha
   // de teclado) e permite fechar com Esc. O foco inicial vai ao diálogo.
@@ -60,10 +70,12 @@ export function PreviewModal(props: {
 
   const download = async () => {
     setBusy(true);
+    setError(null);
+    // Gera o PDF ANTES de consumir a sequência: se a geração falhar, nenhum identificador é
+    // queimado (o próximo clique reusa o mesmo número). Só persiste o contador no sucesso.
     try {
-      // Consome a sequência AGORA (não na abertura) e congela o snapshot definitivo com o ID real.
-      const id = formatProposalId(nextSequence());
-      setIssuedId(id);
+      const n = peekNextSequence();
+      const id = formatProposalId(n);
       const snap = createProposalSnapshot({
         id,
         input: props.input,
@@ -71,6 +83,14 @@ export function PreviewModal(props: {
       });
       const doc = await generateProposalPdf(snap);
       doc.save(`${snap.id}.pdf`);
+      commitSequence(n); // consome o número só agora, após sucesso
+      setIssuedId(id);
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? `Não foi possível gerar o PDF: ${e.message}. Nenhum identificador foi consumido — tente novamente.`
+          : 'Não foi possível gerar o PDF. Nenhum identificador foi consumido — tente novamente.',
+      );
     } finally {
       setBusy(false);
     }
@@ -102,6 +122,21 @@ export function PreviewModal(props: {
           </tbody>
         </table>
 
+        {!hasClient && (
+          <div className="note" role="alert" style={{ marginTop: 12 }}>
+            Sem cliente nomeado — a proposta sairá sem identificação do cliente. Preencha o campo
+            “Cliente” se for enviá-la externamente.
+          </div>
+        )}
+        {issuedId && !error && (
+          <div className="note ok" role="status" aria-live="polite" style={{ marginTop: 12 }}>
+            PDF gerado: <b>{issuedId}</b>. Verifique os downloads do navegador.
+          </div>
+        )}
+        {error && (
+          <div className="note bad" role="alert" style={{ marginTop: 12 }}>{error}</div>
+        )}
+
         <label className="field full" style={{ cursor: 'pointer', marginTop: 12 }}>
           <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <input type="checkbox" checked={confirmed} style={{ width: 'auto' }} onChange={(e) => setConfirmed(e.target.checked)} />
@@ -111,10 +146,10 @@ export function PreviewModal(props: {
 
         <div className="actions">
           <button className="cta" type="button" disabled={!confirmed || busy} onClick={() => void download()} style={{ opacity: confirmed && !busy ? 1 : 0.5 }}>
-            {busy ? 'Gerando…' : 'Gerar PDF'}
+            {busy ? 'Gerando…' : issuedId && !error ? 'Gerar novamente' : 'Gerar PDF'}
           </button>
           <button className="ghostbtn" type="button" onClick={props.onClose}>
-            Cancelar
+            {issuedId && !error ? 'Fechar' : 'Cancelar'}
           </button>
         </div>
         <p className="sub" style={{ marginTop: 10 }}>

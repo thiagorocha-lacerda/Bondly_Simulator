@@ -59,4 +59,22 @@ describe('PreviewModal — confidencialidade por audience (§12/§16)', () => {
     fireEvent.keyDown(document, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it('avisa quando não há cliente nomeado; sem aviso quando preenchido', () => {
+    const { unmount } = render(
+      <AudienceProvider initial="internal">
+        <PreviewModal input={DEFAULT_INPUT} onClose={() => {}} />
+      </AudienceProvider>,
+    );
+    expect(screen.getByText(/Sem cliente nomeado/i)).toBeInTheDocument();
+    unmount();
+
+    const withClient = { ...DEFAULT_INPUT, arka: { ...(DEFAULT_INPUT.arka ?? { goLiveDate: '', owner: '', evidenceStage: 1, probability: 0 }), clientName: 'ACME' } };
+    render(
+      <AudienceProvider initial="internal">
+        <PreviewModal input={withClient} onClose={() => {}} />
+      </AudienceProvider>,
+    );
+    expect(screen.queryByText(/Sem cliente nomeado/i)).not.toBeInTheDocument();
+  });
 });
