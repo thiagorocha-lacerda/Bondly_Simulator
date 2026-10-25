@@ -191,4 +191,15 @@ describe('Versionamento e snapshot imutável (§27.6)', () => {
     const snap = createProposalSnapshot({ id: formatProposalId(4), input: inputWithModules(2) });
     expect(snap.b2c).toBeUndefined();
   });
+
+  it('congela os cenários conservador/base/otimista no snapshot (§13)', () => {
+    const snap = createProposalSnapshot({ id: formatProposalId(5), input: inputWithModules(2) });
+    expect(snap.scenarios.map((s) => s.name)).toEqual(['conservador', 'base', 'otimista']);
+    const [cons, base, oti] = snap.scenarios;
+    // menos MAU = menos Usage = Core menor; mais MAU = Core maior
+    expect(cons!.result.core).toBeLessThan(base!.result.core);
+    expect(oti!.result.core).toBeGreaterThan(base!.result.core);
+    // o cenário base reproduz o resultado principal do snapshot
+    expect(base!.result.core).toBeCloseTo(snap.result.core, 6);
+  });
 });

@@ -4,6 +4,8 @@
  * garantindo que não haja fórmula paralela (prompt §13/§20).
  */
 import type { PricingInput, PricingResult } from '../contracts/types.js';
+import type { PremiseTable } from '../premises/premises.js';
+import { CURRENT_PREMISES } from '../premises/premises.js';
 import { calculate } from '../calculations/calculate.js';
 
 export type ScenarioName = 'conservador' | 'base' | 'otimista' | string;
@@ -28,19 +30,27 @@ export function applyScenario(base: PricingInput, ov: ScenarioOverride): Pricing
   };
 }
 
-export function runScenarios(base: PricingInput, overrides: readonly ScenarioOverride[]): ScenarioResult[] {
+export function runScenarios(
+  base: PricingInput,
+  overrides: readonly ScenarioOverride[],
+  premises: PremiseTable = CURRENT_PREMISES,
+): ScenarioResult[] {
   return overrides.map((ov) => {
     const input = applyScenario(base, ov);
-    return { name: ov.name, input, result: calculate(input) };
+    return { name: ov.name, input, result: calculate(input, premises) };
   });
 }
 
 /** Trio padrão: conservador (−30% MAU), base, otimista (+30% MAU). */
-export function defaultScenarios(base: PricingInput): ScenarioResult[] {
+export function defaultScenarios(base: PricingInput, premises: PremiseTable = CURRENT_PREMISES): ScenarioResult[] {
   const mau = base.volume.mauPct;
-  return runScenarios(base, [
-    { name: 'conservador', volume: { mauPct: Math.max(0, mau * 0.7) } },
-    { name: 'base' },
-    { name: 'otimista', volume: { mauPct: Math.min(1, mau * 1.3) } },
-  ]);
+  return runScenarios(
+    base,
+    [
+      { name: 'conservador', volume: { mauPct: Math.max(0, mau * 0.7) } },
+      { name: 'base' },
+      { name: 'otimista', volume: { mauPct: Math.min(1, mau * 1.3) } },
+    ],
+    premises,
+  );
 }

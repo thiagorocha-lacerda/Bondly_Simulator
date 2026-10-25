@@ -12,6 +12,7 @@ import { CURRENT_PREMISES, hashPremiseTable } from '../premises/premises.js';
 import { ENGINE_VERSION } from '../version.js';
 import { calculate } from '../calculations/calculate.js';
 import { runB2c, type B2cInput, type B2cResult } from '../modules/b2c.js';
+import { defaultScenarios, type ScenarioResult } from '../scenarios/scenarios.js';
 
 /** Bloco B2C opcional de uma proposta: input normalizado + projeção, congelados no snapshot. */
 export interface ProposalB2c {
@@ -30,6 +31,7 @@ export interface ProposalSnapshot {
   readonly input: PricingInput;
   readonly result: PricingResult;
   readonly b2c?: ProposalB2c; // módulo B2C (quando a proposta o inclui)
+  readonly scenarios: readonly ScenarioResult[]; // conservador/base/otimista (§13), congelados
 }
 
 /** Formata um identificador único de proposta `BONDLY-2027-NNNNNN` (§15). */
@@ -55,6 +57,7 @@ export function createProposalSnapshot(args: {
   const b2c: ProposalB2c | undefined = args.b2cInput
     ? { input: args.b2cInput, result: runB2c(args.b2cInput, premises) }
     : undefined;
+  const scenarios = defaultScenarios(args.input, premises);
   return Object.freeze({
     id: args.id,
     revision: args.revision ?? 1,
@@ -65,6 +68,7 @@ export function createProposalSnapshot(args: {
     premises,
     input: args.input,
     result,
+    scenarios,
     ...(b2c ? { b2c } : {}),
   });
 }

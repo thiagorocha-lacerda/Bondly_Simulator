@@ -92,6 +92,45 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
     row('Resultado Bondly no semestre', brl(b.total));
   }
 
+  // Cenários de sensibilidade (§13) — conservador / base / otimista
+  {
+    const pageH = doc.internal.pageSize.getHeight();
+    if (y > pageH - 160) {
+      doc.addPage();
+      y = 64;
+    }
+    y += 8;
+    rule();
+    line('Cenários — sensibilidade ao engajamento (±30% MAU)', 13, true);
+    const labels: Record<string, string> = {
+      conservador: 'Conservador (−30% MAU)',
+      base: 'Base',
+      otimista: 'Otimista (+30% MAU)',
+    };
+    // cabeçalho
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.setTextColor('#3e4152');
+    doc.text('Cenário', M, y);
+    doc.text('Core MRR', W - M - 220, y, { align: 'right' });
+    doc.text('TCV', W - M - 90, y, { align: 'right' });
+    doc.text('Margem', W - M, y, { align: 'right' });
+    y += 16;
+    doc.setDrawColor('#e1ddd0');
+    doc.line(M, y - 6, W - M, y - 6);
+    for (const s of snap.scenarios) {
+      const isBase = s.name === 'base';
+      doc.setFont('helvetica', isBase ? 'bold' : 'normal');
+      doc.setFontSize(10);
+      doc.setTextColor('#12131c');
+      doc.text(labels[s.name] ?? s.name, M, y);
+      doc.text(`${brl(s.result.core)}/mês`, W - M - 220, y, { align: 'right' });
+      doc.text(brl(s.result.tcvClient), W - M - 90, y, { align: 'right' });
+      doc.text(pct(s.result.technicalMargin), W - M, y, { align: 'right' });
+      y += 18;
+    }
+  }
+
   // Rodapé de reprodutibilidade
   y = doc.internal.pageSize.getHeight() - 40;
   doc.setFont('helvetica', 'normal');
