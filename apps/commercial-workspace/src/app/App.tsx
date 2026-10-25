@@ -11,6 +11,7 @@ import { ServicesPanel } from '../components/ServicesPanel';
 import { CampaignPanel } from '../components/CampaignPanel';
 import { B2cPanel } from '../components/B2cPanel';
 import { ArkaPanel } from '../components/ArkaPanel';
+import { ScenarioPanel } from '../components/ScenarioPanel';
 
 type Mode = 'quick' | 'advanced';
 type Audience = 'internal' | 'external';
@@ -118,6 +119,7 @@ export function App() {
         <div>
           <ResultsDashboard result={result} users={input.volume.users} audience={audience} />
           <ArkaPanel input={input} />
+          <ScenarioPanel input={input} />
         </div>
       </div>
 

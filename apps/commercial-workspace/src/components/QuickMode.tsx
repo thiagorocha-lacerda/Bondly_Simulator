@@ -44,6 +44,12 @@ export function QuickMode(props: {
           ]}
           onChange={(v) => update({ negotiation: { term: v } })}
         />
+        <PercentField
+          label="Desconto negociado (% do Platform Fee)"
+          hint="Até 5% aprova Comercial · 5–10% Head · 10–15% CEO+Fin. Acima do corredor pede exceção formal."
+          value={input.negotiation.extraDiscount}
+          onChange={(v) => update({ negotiation: { extraDiscount: v } })}
+        />
       </Panel>
 
       <div style={{ height: 16 }} />
