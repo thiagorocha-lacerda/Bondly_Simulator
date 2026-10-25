@@ -1,0 +1,47 @@
+name: CI
+
+# Executa typecheck/testes/build antes de qualquer versão ser considerada apta à publicação
+# (prompt §27.3). A Vercel só deve promover para produção um commit que passou por aqui.
+# (Lint/ESLint ainda não configurado — ver roadmap docs/08; o typecheck strict cobre boa parte.)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Typecheck · Testes · Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install (workspaces)
+        run: npm ci
+
+      - name: Typecheck (todos os workspaces)
+        run: npm run typecheck
+
+      - name: Testes do Pricing Engine (40 testes, inclui paridade com o HTML)
+        run: npm run test
+
+      - name: Build do Commercial Workspace
+        run: npm run build --workspace @bondly/commercial-workspace
+
+      - name: Verificar artefato de build
+        run: test -f apps/commercial-workspace/dist/index.html && echo "dist OK"
