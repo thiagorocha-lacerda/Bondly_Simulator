@@ -12,7 +12,7 @@ export function ResultsDashboard(props: { result: PricingResult; users: number }
   // Core MRR por usuário elegível. Usa a base real (props.users), não uma reconstrução a partir do MAU.
   const perUser = props.users > 0 && r.core > 0 ? (r.core / props.users).toFixed(2) : '—';
   return (
-    <div className="panel sticky">
+    <div className="panel">
       <div className="tier">
         <div>
           <div className="t">{r.tierName}</div>
