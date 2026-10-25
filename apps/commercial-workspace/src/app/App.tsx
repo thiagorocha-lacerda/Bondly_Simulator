@@ -143,7 +143,7 @@ export function App() {
         <div>
           <ResultsDashboard result={result} users={input.volume.users} audience={audience} />
           <ArkaPanel input={input} />
-          <ScenarioPanel input={input} />
+          <ScenarioPanel input={input} audience={audience} />
         </div>
       </div>
 

@@ -6,9 +6,11 @@ import { brl, pct } from '../services/defaults';
 /**
  * Comparação de cenários (§13): conservador (−30% MAU) / base / otimista (+30% MAU).
  * Usa `defaultScenarios()` do engine — o MESMO motor recalcula cada cenário, sem fórmula paralela.
+ * Visão comercial (external) oculta Margem técnica e Status (números internos §12/§16), igual ao PDF.
  */
-export function ScenarioPanel(props: { input: PricingInput }) {
+export function ScenarioPanel(props: { input: PricingInput; audience: 'internal' | 'external' }) {
   const scenarios = useMemo(() => defaultScenarios(props.input), [props.input]);
+  const internal = props.audience === 'internal';
   const label: Record<string, string> = {
     conservador: 'Conservador · −30% MAU',
     base: 'Base',
@@ -25,8 +27,8 @@ export function ScenarioPanel(props: { input: PricingInput }) {
             <th style={{ textAlign: 'left' }}>Cenário</th>
             <th className="num">Core MRR</th>
             <th className="num">TCV ao cliente</th>
-            <th className="num">Margem técnica</th>
-            <th className="num">Status</th>
+            {internal && <th className="num">Margem técnica</th>}
+            {internal && <th className="num">Status</th>}
           </tr>
         </thead>
         <tbody>
@@ -35,22 +37,24 @@ export function ScenarioPanel(props: { input: PricingInput }) {
               <td>{label[s.name] ?? s.name}</td>
               <td className="num">{brl(s.result.core)}/mês</td>
               <td className="num">{brl(s.result.tcvClient)}</td>
-              <td className="num">{pct(s.result.technicalMargin)}</td>
-              <td className="num">
-                <span
-                  className={`status ${
-                    s.result.marginStatus === 'SAUDÁVEL'
-                      ? 'ok'
-                      : s.result.marginStatus === 'REVISAR'
-                        ? 'warn'
-                        : s.result.marginStatus === 'REPRECIFICAR'
-                          ? 'bad'
-                          : 'info'
-                  }`}
-                >
-                  {s.result.marginStatus}
-                </span>
-              </td>
+              {internal && <td className="num">{pct(s.result.technicalMargin)}</td>}
+              {internal && (
+                <td className="num">
+                  <span
+                    className={`status ${
+                      s.result.marginStatus === 'SAUDÁVEL'
+                        ? 'ok'
+                        : s.result.marginStatus === 'REVISAR'
+                          ? 'warn'
+                          : s.result.marginStatus === 'REPRECIFICAR'
+                            ? 'bad'
+                            : 'info'
+                    }`}
+                  >
+                    {s.result.marginStatus}
+                  </span>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>
