@@ -147,7 +147,7 @@ export function App() {
         </div>
       </div>
 
-      {preview && <PreviewModal input={input} b2cInput={b2c.include ? b2c.input : undefined} onClose={() => setPreview(false)} />}
+      {preview && <PreviewModal input={input} b2cInput={b2c.include ? b2c.input : undefined} audience={audience} onClose={() => setPreview(false)} />}
     </div>
   );
 }

@@ -21,7 +21,12 @@ function nextSequence(): number {
  * A pré-visualização usa um snapshot PROVISÓRIO (sem consumir a sequência de identificadores).
  * A sequência `BONDLY-2027-NNNNNN` só é consumida ao GERAR o PDF — abrir/cancelar não queima IDs (§15).
  */
-export function PreviewModal(props: { input: PricingInput; b2cInput?: B2cInput | undefined; onClose: () => void }) {
+export function PreviewModal(props: {
+  input: PricingInput;
+  b2cInput?: B2cInput | undefined;
+  audience: 'internal' | 'external';
+  onClose: () => void;
+}) {
   // Snapshot provisório só para exibir os números na conferência. ID real é atribuído ao gerar.
   const [preview] = useState(() =>
     createProposalSnapshot({
@@ -69,7 +74,12 @@ export function PreviewModal(props: { input: PricingInput; b2cInput?: B2cInput |
             <tr><td>Valor mensal estimado</td><td className="num">{brl(r.core + r.servicesMrr)}/mês</td></tr>
             <tr className="sum"><td>TCV ao cliente</td><td className="num">{brl(r.tcvClient)}</td></tr>
             {preview.b2c && (
-              <tr><td>Assinaturas B2C · resultado Bondly H2</td><td className="num">{brl(preview.b2c.result.tot.total)}</td></tr>
+              props.audience === 'internal' ? (
+                <tr><td>Assinaturas B2C · resultado Bondly H2</td><td className="num">{brl(preview.b2c.result.tot.total)}</td></tr>
+              ) : (
+                // Visão comercial: NÃO expõe o resultado Bondly (número interno). Só volume ao cliente.
+                <tr><td>Assinaturas B2C · ativos em dez</td><td className="num">{preview.b2c.result.tot.end.toLocaleString('pt-BR', { maximumFractionDigits: 0 })}</td></tr>
+              )
             )}
           </tbody>
         </table>
