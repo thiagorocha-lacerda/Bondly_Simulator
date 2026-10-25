@@ -25,6 +25,12 @@ header.app {
 .meta { color: var(--text-muted); font-size: var(--fs-sm); }
 
 .grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin-top: 20px; align-items: start; }
+/* Coluna de resultado acompanha a rolagem como um bloco; rola internamente se mais alta que a viewport. */
+.result-col { position: sticky; top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 28px); overflow: auto; }
+/* Indicador de salvo-automático: aparece discreto e some. */
+.saved-tag { display: inline-flex; align-items: center; gap: 6px; font-size: var(--fs-xs); font-weight: 700; color: var(--success); background: var(--success-soft); padding: 3px 10px; border-radius: var(--radius-pill); opacity: 0; transition: opacity .25s ease; }
+.saved-tag.show { opacity: 1; }
+.saved-tag::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
 .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; }
 .panel h2 { margin-bottom: 4px; } .panel .sub { color: var(--text-muted); font-size: var(--fs-sm); margin-bottom: 14px; }
 
@@ -83,7 +89,7 @@ button.ghostbtn { font: inherit; font-weight: 700; padding: 10px 16px; border-ra
 .pdfmodal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 20px; z-index: 50; }
 .pdfmodal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 24px; max-width: 640px; width: 100%; max-height: 86vh; overflow: auto; }
 
-@media (max-width: 900px) { .grid { grid-template-columns: minmax(0,1fr); } .big { grid-template-columns: 1fr 1fr; } .field { grid-template-columns: 1fr 120px; } }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0,1fr); } .result-col { position: static; max-height: none; overflow: visible; } .big { grid-template-columns: 1fr 1fr; } .field { grid-template-columns: 1fr 120px; } }
 /* Mobile: valores longos na última coluna quebram em vez de causar overflow horizontal da tabela. */
 @media (max-width: 560px) { table.bd td:last-child { white-space: normal; word-break: break-word; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

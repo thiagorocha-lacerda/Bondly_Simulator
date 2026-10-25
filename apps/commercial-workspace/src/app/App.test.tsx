@@ -66,4 +66,18 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
     expect(screen.getByText(/MAU \(% da base\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
   });
+
+  it('indicador "Salvo automaticamente" aparece após uma mudança e não no boot', async () => {
+    const user = userEvent.setup();
+    render(
+      <AudienceProvider initial="internal">
+        <App />
+      </AudienceProvider>,
+    );
+    // boot: sem indicador
+    expect(screen.queryByText(/Salvo automaticamente/i)).not.toBeInTheDocument();
+    // uma mudança persistível (habilitar B2C) dispara o pulso
+    await user.click(screen.getByRole('button', { name: /^Habilitado$/i }));
+    expect(await screen.findByText(/Salvo automaticamente/i)).toBeInTheDocument();
+  });
 });

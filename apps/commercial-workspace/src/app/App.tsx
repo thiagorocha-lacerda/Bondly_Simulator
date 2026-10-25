@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ModuleId } from '@bondly/pricing-engine';
 import { MODULE_CATALOG, validateDependencies } from '@bondly/pricing-engine';
 import { usePricing } from '../hooks/usePricing';
@@ -70,6 +70,20 @@ export function App() {
   };
 
   const depIssues = validateDependencies(modules).filter((i) => i.kind === 'required');
+
+  // Indicador "salvo automaticamente": pulsa brevemente quando algo persistível muda.
+  // Pula o primeiro render (boot) para não piscar sem ação do usuário.
+  const [savedPulse, setSavedPulse] = useState(false);
+  const bootDone = useRef(false);
+  useEffect(() => {
+    if (!bootDone.current) {
+      bootDone.current = true;
+      return;
+    }
+    setSavedPulse(true);
+    const id = window.setTimeout(() => setSavedPulse(false), 1600);
+    return () => window.clearTimeout(id);
+  }, [input, b2c.raw, b2c.enabled, b2c.include, modules]);
 
   // Visão comercial é inerentemente um resumo para o cliente → sempre modo rápido.
   // O modo avançado (drivers internos de pricing) só faz sentido em visão interna.
@@ -148,21 +162,25 @@ export function App() {
             setEnabled={b2c.setEnabled}
             setInclude={b2c.setInclude}
           />
-
-          <div className="actions">
-            <button className="cta" type="button" onClick={() => setPreview(true)}>
-              Pré-visualizar → gerar PDF
-            </button>
-            <button className="ghostbtn" type="button" onClick={resetAll}>
-              Voltar aos padrões
-            </button>
-          </div>
-          <p className="sub" style={{ marginTop: 10 }}>
+          <p className="sub" style={{ marginTop: 14 }}>
             Armazenamento local (Cenário A): os dados ficam só neste navegador, não sincronizados entre usuários ou dispositivos.
           </p>
         </div>
 
-        <div>
+        <div className="result-col">
+          <div className="panel" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <div className="actions" style={{ margin: 0 }}>
+              <button className="cta" type="button" onClick={() => setPreview(true)}>
+                Pré-visualizar → gerar PDF
+              </button>
+              <button className="ghostbtn" type="button" onClick={resetAll}>
+                Voltar aos padrões
+              </button>
+            </div>
+            <span className={`saved-tag ${savedPulse ? 'show' : ''}`} role="status" aria-live="polite">
+              {savedPulse ? 'Salvo automaticamente' : ''}
+            </span>
+          </div>
           <ResultsDashboard result={result} users={input.volume.users} />
           {internal && <ArkaPanel input={input} />}
           <ScenarioPanel input={input} />

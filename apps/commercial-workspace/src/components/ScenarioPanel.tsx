@@ -19,7 +19,7 @@ export function ScenarioPanel(props: { input: PricingInput }) {
   };
 
   return (
-    <div className="panel" style={{ marginTop: 16 }}>
+    <div className="panel">
       <h2>Cenários — sensibilidade ao engajamento</h2>
       <p className="sub">Mesmas premissas e motor; varia só o MAU. Útil para enquadrar o risco da proposta.</p>
       <table className="bd">

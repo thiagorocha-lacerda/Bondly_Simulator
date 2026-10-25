@@ -13,7 +13,7 @@ export function ArkaPanel(props: { input: PricingInput }) {
   const statusClass = cls === 'H3' ? 'warn' : 'ok';
 
   return (
-    <div className="panel" style={{ marginTop: 16 }}>
+    <div className="panel">
       <h2>Evidência comercial — ARKA</h2>
       <p className="sub">{arka.classLabel}</p>
 
