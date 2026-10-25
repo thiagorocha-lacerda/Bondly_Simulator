@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ModuleId } from '@bondly/pricing-engine';
 import { MODULE_CATALOG, validateDependencies } from '@bondly/pricing-engine';
 import { usePricing } from '../hooks/usePricing';
@@ -45,6 +45,28 @@ export function App() {
     }
     // a contagem de módulos selecionados alimenta o score de complexidade (R-011 / D-M1)
     update({ complexity: { modules: Math.max(1, ids.length) } });
+  };
+
+  // Fonte única também no BOOT: se a contagem salva no input divergir da seleção de módulos
+  // persistida, a seleção vence (é a UI canônica). Evita cálculo com contagem defasada antes
+  // do primeiro clique. Só dispara quando realmente diverge.
+  useEffect(() => {
+    const expected = Math.max(1, modules.length);
+    if (input.complexity.modules !== expected) {
+      update({ complexity: { modules: expected } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const resetAll = () => {
+    reset();
+    b2c.reset();
+    setModulesState(['points', 'engagement']);
+    try {
+      localStorage.setItem(MODULES_KEY, JSON.stringify(['points', 'engagement']));
+    } catch {
+      /* ignore */
+    }
   };
 
   const depIssues = validateDependencies(modules).filter((i) => i.kind === 'required');
@@ -109,7 +131,7 @@ export function App() {
             <button className="cta" type="button" onClick={() => setPreview(true)}>
               Pré-visualizar → gerar PDF
             </button>
-            <button className="ghostbtn" type="button" onClick={reset}>
+            <button className="ghostbtn" type="button" onClick={resetAll}>
               Voltar aos padrões
             </button>
           </div>

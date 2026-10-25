@@ -48,6 +48,7 @@ export interface UseB2c {
   readonly include: boolean; // entra no snapshot/PDF da proposta?
   set: (patch: Partial<B2cInput>) => void;
   setInclude: (on: boolean) => void;
+  reset: () => void;
 }
 
 /**
@@ -81,5 +82,16 @@ export function useB2c(): UseB2c {
 
   const input = useMemo(() => normalizeB2cInput(raw, CURRENT_PREMISES), [raw]);
 
-  return { raw, input, include, set, setInclude };
+  const reset = useCallback(() => {
+    setRaw(B2C_DEFAULTS);
+    setIncludeState(false);
+    try {
+      localStorage.removeItem(KEY);
+      localStorage.removeItem(INCLUDE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  return { raw, input, include, set, setInclude, reset };
 }

@@ -18,24 +18,34 @@ function nextSequence(): number {
 
 /**
  * Fluxo PRÉ-VISUALIZAR → CONFERIR → CONFIRMAR → GERAR PDF (§16).
- * Ao abrir, congela um snapshot imutável; qualquer alteração posterior invalida a confirmação
- * (o modal é fechado e reaberto com um novo snapshot).
+ * A pré-visualização usa um snapshot PROVISÓRIO (sem consumir a sequência de identificadores).
+ * A sequência `BONDLY-2027-NNNNNN` só é consumida ao GERAR o PDF — abrir/cancelar não queima IDs (§15).
  */
 export function PreviewModal(props: { input: PricingInput; b2cInput?: B2cInput | undefined; onClose: () => void }) {
-  const [snap] = useState(() =>
+  // Snapshot provisório só para exibir os números na conferência. ID real é atribuído ao gerar.
+  const [preview] = useState(() =>
     createProposalSnapshot({
-      id: formatProposalId(nextSequence()),
+      id: formatProposalId(0),
       input: props.input,
       ...(props.b2cInput ? { b2cInput: props.b2cInput } : {}),
     }),
   );
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
-  const r = snap.result;
+  const [issuedId, setIssuedId] = useState<string | null>(null);
+  const r = preview.result;
 
   const download = async () => {
     setBusy(true);
     try {
+      // Consome a sequência AGORA (não na abertura) e congela o snapshot definitivo com o ID real.
+      const id = formatProposalId(nextSequence());
+      setIssuedId(id);
+      const snap = createProposalSnapshot({
+        id,
+        input: props.input,
+        ...(props.b2cInput ? { b2cInput: props.b2cInput } : {}),
+      });
       const doc = await generateProposalPdf(snap);
       doc.save(`${snap.id}.pdf`);
     } finally {
@@ -48,18 +58,18 @@ export function PreviewModal(props: { input: PricingInput; b2cInput?: B2cInput |
       <div className="pdfmodal" onClick={(e) => e.stopPropagation()}>
         <h2>Pré-visualizar proposta</h2>
         <p className="sub">
-          Identificador <b>{snap.id}</b> · motor {r.engineVersion} · premissas {r.premisesVersion} ({r.premisesHash})
+          Identificador <b>{issuedId ?? 'definido ao gerar o PDF'}</b> · motor {r.engineVersion} · premissas {r.premisesVersion} ({r.premisesHash})
         </p>
         <table className="bd">
           <tbody>
-            <tr><td>Cliente</td><td className="num">{snap.input.arka?.clientName || '—'}</td></tr>
-            <tr><td>Tier · usuários</td><td className="num">{r.tierName} · {snap.input.volume.users.toLocaleString('pt-BR')}</td></tr>
-            <tr><td>Prazo</td><td className="num">{snap.input.negotiation.term} meses</td></tr>
+            <tr><td>Cliente</td><td className="num">{preview.input.arka?.clientName || '—'}</td></tr>
+            <tr><td>Tier · usuários</td><td className="num">{r.tierName} · {preview.input.volume.users.toLocaleString('pt-BR')}</td></tr>
+            <tr><td>Prazo</td><td className="num">{preview.input.negotiation.term} meses</td></tr>
             <tr className="sum"><td>Setup</td><td className="num">{brl(r.setupClient)}</td></tr>
             <tr><td>Valor mensal estimado</td><td className="num">{brl(r.core + r.servicesMrr)}/mês</td></tr>
             <tr className="sum"><td>TCV ao cliente</td><td className="num">{brl(r.tcvClient)}</td></tr>
-            {snap.b2c && (
-              <tr><td>Assinaturas B2C · resultado Bondly H2</td><td className="num">{brl(snap.b2c.result.tot.total)}</td></tr>
+            {preview.b2c && (
+              <tr><td>Assinaturas B2C · resultado Bondly H2</td><td className="num">{brl(preview.b2c.result.tot.total)}</td></tr>
             )}
           </tbody>
         </table>
