@@ -47,7 +47,7 @@ textarea { font-weight: 500; min-height: 80px; resize: vertical; }
 }
 .toggle button[aria-pressed="true"] { background: var(--deep); color: var(--on-deep); border-color: var(--deep); }
 
-.tier { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 14px 16px; border-radius: var(--radius-md); background: var(--deep); color: var(--on-deep); }
+.tier { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-radius: var(--radius-md); background: var(--deep); color: var(--on-deep); }
 .tier .t { font-size: 24px; font-weight: 800; } .tier .u { color: var(--text-on-deep); opacity: .8; font-size: var(--fs-sm); }
 .big { display: grid; grid-template-columns: repeat(2,1fr); gap: 10px; margin-top: 12px; }
 .big div { padding: 12px; border-radius: var(--radius-md); background: var(--bg-primary); border: 1px solid var(--border); }
