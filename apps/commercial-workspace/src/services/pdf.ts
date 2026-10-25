@@ -57,18 +57,33 @@ export async function generateProposalPdf(
     y += 24;
   };
   const kv = (k: string, v: string, strong = false) => {
-    ensure(34);
+    // Layout em 2 colunas com QUEBRA no valor: chave à esquerda (até ~48% da largura),
+    // valor à direita alinhado, podendo ocupar várias linhas — evita estouro/sobreposição.
+    const keyW = cw * 0.46;
+    const valW = cw * 0.5;
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    const keyLines = doc.splitTextToSize(k, keyW) as string[];
+    doc.setFont('helvetica', strong ? 'bold' : 'normal');
+    doc.setFontSize(strong ? 12 : 11);
+    const valLines = doc.splitTextToSize(v, valW) as string[];
+    const rows = Math.max(keyLines.length, valLines.length);
+    const rowH = 15;
+    const blockH = rows * rowH + 10;
+    ensure(blockH + 6);
+    // chave
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(11);
     doc.setTextColor(INK_SOFT);
-    doc.text(k, M, y);
+    doc.text(keyLines, M, y);
+    // valor (alinhado à direita)
     doc.setFont('helvetica', strong ? 'bold' : 'normal');
     doc.setFontSize(strong ? 12 : 11);
     doc.setTextColor(INK);
-    doc.text(v, W - M, y, { align: 'right' });
-    y += 22;
+    doc.text(valLines, W - M, y, { align: 'right' });
+    y += blockH;
     doc.setDrawColor(SAND_LINE);
-    doc.line(M, y - 10, W - M, y - 10);
+    doc.line(M, y - 8, W - M, y - 8);
   };
   const paragraph = (text: string, color = INK_SOFT, size = 11) => {
     doc.setFont('helvetica', 'normal');
@@ -121,36 +136,48 @@ export async function generateProposalPdf(
 
   // ---- INVESTIMENTO (destaque) --------------------------------------------
   sectionTitle('Investimento');
-  // Cartão de destaque: valor mensal grande.
-  ensure(118);
+  // Cartão de destaque: valor mensal grande à esquerda; Setup e 1º ano empilhados à direita.
+  const cardH = 100;
+  ensure(cardH + 20);
+  const cardTop = y - 4;
   doc.setFillColor(SAND);
-  doc.roundedRect(M, y - 4, cw, 96, 10, 10, 'F');
+  doc.roundedRect(M, cardTop, cw, cardH, 10, 10, 'F');
+  const padX = 20;
+  // rótulo + valor mensal (fonte ajustada para caber na metade esquerda)
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(11);
   doc.setTextColor(MUTED);
-  doc.text('Investimento mensal estimado', M + 20, y + 22);
+  doc.text('Investimento mensal estimado', M + padX, cardTop + 26);
+  const monthly = `${brl(r.core + r.servicesMrr)}/mês`;
+  const leftW = cw * 0.56 - padX;
+  let mSize = 28;
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(30);
+  doc.setFontSize(mSize);
+  while (doc.getTextWidth(monthly) > leftW && mSize > 16) {
+    mSize -= 1;
+    doc.setFontSize(mSize);
+  }
   doc.setTextColor(NAVY);
-  doc.text(`${brl(r.core + r.servicesMrr)}/mês`, M + 20, y + 56);
-  // Dois valores à direita dentro do cartão
+  doc.text(monthly, M + padX, cardTop + 62);
+  // coluna direita: dois valores empilhados
+  const rx = W - M - padX;
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(MUTED);
-  doc.text('Setup (único)', W - M - 20, y + 20, { align: 'right' });
+  doc.text('Setup (único)', rx, cardTop + 24, { align: 'right' });
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(INK);
-  doc.text(brl(r.setupClient), W - M - 20, y + 38, { align: 'right' });
+  doc.text(brl(r.setupClient), rx, cardTop + 42, { align: 'right' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(10);
   doc.setTextColor(MUTED);
-  doc.text('Total no 1º ano', W - M - 20, y + 62, { align: 'right' });
+  doc.text('Total no 1º ano', rx, cardTop + 68, { align: 'right' });
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(INK);
-  doc.text(brl(r.clientYear1), W - M - 20, y + 80, { align: 'right' });
-  y += 112;
+  doc.text(brl(r.clientYear1), rx, cardTop + 86, { align: 'right' });
+  y = cardTop + cardH + 18;
 
   kv('Valor total do contrato (TCV)', brl(r.tcvClient), true);
   if (snap.input.negotiation.term > 12) {
@@ -181,15 +208,15 @@ export async function generateProposalPdf(
   );
   ensure(30 + snap.scenarios.length * 20);
   const cLabels: Record<string, string> = {
-    conservador: 'Conservador · −30% engajamento',
+    conservador: 'Conservador (−30%)',
     base: 'Base',
-    otimista: 'Otimista · +30% engajamento',
+    otimista: 'Otimista (+30%)',
   };
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(INK_SOFT);
   doc.text('Cenário', M, y);
-  doc.text('Mensal', W - M - 150, y, { align: 'right' });
+  doc.text('Mensal', W - M - 170, y, { align: 'right' });
   doc.text('Total do contrato', W - M, y, { align: 'right' });
   y += 8;
   doc.setDrawColor(SAND_LINE);
@@ -198,12 +225,12 @@ export async function generateProposalPdf(
   for (const s of snap.scenarios) {
     const isBase = s.name === 'base';
     doc.setFont('helvetica', isBase ? 'bold' : 'normal');
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(isBase ? NAVY : INK);
     doc.text(cLabels[s.name] ?? s.name, M, y);
-    doc.text(`${brl(s.result.core)}/mês`, W - M - 150, y, { align: 'right' });
+    doc.text(`${brl(s.result.core)}/mês`, W - M - 170, y, { align: 'right' });
     doc.text(brl(s.result.tcvClient), W - M, y, { align: 'right' });
-    y += 20;
+    y += 19;
   }
 
   // ---- B2C (quando incluído) ----------------------------------------------
