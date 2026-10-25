@@ -1,16 +1,49 @@
-import type { PricingInput, CommunicationStrategy, CommercialOption } from '@bondly/pricing-engine';
+import type { PricingInput, CommunicationStrategy, CommercialOption, ModuleId } from '@bondly/pricing-engine';
+import { MODULE_CATALOG } from '@bondly/pricing-engine';
 import { NumberField, PercentField, Panel, Toggle, SelectField, TextField } from './Fields';
 
 import type { InputPatch } from '../services/patch';
 
 /** Modo avançado (§10.2): parâmetros detalhados. Usa o MESMO Pricing Engine que o Quick mode. */
-export function AdvancedMode(props: { input: PricingInput; update: (patch: InputPatch) => void }) {
+export function AdvancedMode(props: {
+  input: PricingInput;
+  update: (patch: InputPatch) => void;
+  selectedModules: readonly ModuleId[];
+  onModules: (ids: ModuleId[]) => void;
+}) {
   const { input, update } = props;
   return (
     <>
       <Panel title="A implementação" sub="O que o cliente pede define a complexidade, o Setup e o markup sugerido.">
         <NumberField label="Integrações" hint="0–1 simples · 2–3 médio · 4+ alto." value={input.complexity.integrations} min={0} max={20} onChange={(v) => update({ complexity: { integrations: v } })} />
-        <NumberField label="Módulos contratados" value={input.complexity.modules} min={1} max={12} onChange={(v) => update({ complexity: { modules: v } })} />
+        <div className="field full">
+          <label>
+            Módulos contratados
+            <small>Fonte única da contagem de módulos (mesma do modo rápido): {input.complexity.modules} selecionado(s) → score de complexidade.</small>
+          </label>
+          <div className="checks" style={{ display: 'grid', gap: 8 }}>
+            {MODULE_CATALOG.map((m) => {
+              const checked = props.selectedModules.includes(m.id);
+              return (
+                <label key={m.id} style={{ display: 'flex', gap: 10, alignItems: 'center', cursor: 'pointer' }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    style={{ width: 'auto' }}
+                    onChange={() =>
+                      props.onModules(
+                        checked
+                          ? props.selectedModules.filter((x) => x !== m.id)
+                          : [...props.selectedModules, m.id],
+                      )
+                    }
+                  />
+                  <b>{m.name}</b>
+                </label>
+              );
+            })}
+          </div>
+        </div>
         <SelectField label="Criticidade de SLA" value={String(input.complexity.slaPoints)} options={[{ v: '0', label: 'Padrão' }, { v: '7.5', label: 'Reforçado' }, { v: '15', label: 'Missão crítica' }]} onChange={(v) => update({ complexity: { slaPoints: Number(v) } })} />
         <SelectField label="Customização" value={String(input.complexity.customizationPoints)} options={[{ v: '0', label: 'Baixo' }, { v: '10', label: 'Médio' }, { v: '20', label: 'Alto' }]} onChange={(v) => update({ complexity: { customizationPoints: Number(v) } })} />
         <SelectField label="Escopo de AI" value={String(input.complexity.aiPoints)} options={[{ v: '0', label: 'Nenhum' }, { v: '7.5', label: 'Padrão' }, { v: '15', label: 'Avançado' }]} onChange={(v) => update({ complexity: { aiPoints: Number(v) } })} />

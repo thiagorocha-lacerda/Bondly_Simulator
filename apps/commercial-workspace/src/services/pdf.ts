@@ -1,5 +1,6 @@
 import type { jsPDF } from 'jspdf';
 import type { ProposalSnapshot } from '@bondly/pricing-engine';
+import { arkaClassification } from '@bondly/pricing-engine';
 import { brl, pct } from './defaults';
 
 /**
@@ -59,6 +60,8 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
   row('Tier', r.tierName);
   row('Usuários elegíveis', snap.input.volume.users.toLocaleString('pt-BR'));
   row('Prazo contratual', `${snap.input.negotiation.term} meses`);
+  const arka = arkaClassification(snap.input.arka);
+  row('Classe ARKA', `${arka.arkaClass} · ${arka.stage.maturity} (estágio ${arka.stage.rank}/15)`);
   rule();
 
   // Condições comerciais (visão externa)

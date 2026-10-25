@@ -85,6 +85,10 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
     tablePriceDefault: premises.dedicatedTablePrice.value,
     hourlyRate: premises.hourlyRate.value,
     implementationHours: complexity.implementationHours,
+    compCapDefault: premises.serviceCompCap.value,
+    productiveHoursDefault: premises.serviceProductiveHours.value,
+    minMarginDefault: premises.serviceMinMargin.value,
+    hourMinMarginDefault: premises.serviceHourMinMargin.value,
   });
   const servicesMrr = sv.mrr;
 

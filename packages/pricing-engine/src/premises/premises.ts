@@ -66,6 +66,10 @@ export interface PremiseTable {
   // Serviços (R-030/R-031)
   readonly dedicatedTablePrice: Premise;
   readonly hourlyRate: Premise;
+  readonly serviceCompCap: Premise; // teto de Total Comp — base do custo/hora de implantação
+  readonly serviceProductiveHours: Premise; // horas produtivas/mês — base do custo/hora
+  readonly serviceMinMargin: Premise; // margem mínima por profissional
+  readonly serviceHourMinMargin: Premise; // margem mínima por hora adicional
 
   // Tributos e repasses (R-022/R-023)
   readonly taxRate: Premise;
@@ -129,6 +133,10 @@ const PREMISES_V15_BASE = {
 
   dedicatedTablePrice: p(35000, 'R$/profissional/mês'),
   hourlyRate: p(350, 'R$/hora'),
+  serviceCompCap: p(25000, 'R$/profissional/mês — teto de Total Comp'),
+  serviceProductiveHours: p(160, 'horas produtivas/mês'),
+  serviceMinMargin: p(5000, 'R$/profissional/mês — margem mínima'),
+  serviceHourMinMargin: p(50, 'R$/hora — margem mínima'),
 
   taxRate: p(0.117, 'fração sobre receita'),
   minuConversionFee: p(0.15, 'fração do Platform Fee (12m)'),

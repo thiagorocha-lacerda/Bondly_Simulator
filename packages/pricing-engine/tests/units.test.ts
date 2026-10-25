@@ -142,3 +142,14 @@ describe('Corredor e alçada (R-017)', () => {
     expect(discountAuthority({ requestedDiscount: 0.2, expansion: false, strategic: false, table: P }).severity).toBe('error');
   });
 });
+
+describe('Premissas de serviço explícitas (governança — hourCost não é mais implícito)', () => {
+  it('a base do custo/hora vive na tabela versionada, com os valores do legado', () => {
+    expect(P.serviceCompCap.value).toBe(25000);
+    expect(P.serviceProductiveHours.value).toBe(160);
+    expect(P.serviceMinMargin.value).toBe(5000);
+    expect(P.serviceHourMinMargin.value).toBe(50);
+    // hourCost default do legado = cap/horas = 25000/160 = 156.25, agora derivado de premissas
+    expect(P.serviceCompCap.value / P.serviceProductiveHours.value).toBeCloseTo(156.25, 9);
+  });
+});

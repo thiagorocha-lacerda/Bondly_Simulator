@@ -5,9 +5,11 @@ const statusClass = (s: PricingResult['marginStatus']): string =>
   s === 'SAUDÁVEL' ? 'ok' : s === 'REVISAR' ? 'warn' : s === 'REPRECIFICAR' ? 'bad' : 'info';
 
 /** Dashboard de resultados (§12). `audience`='internal' mostra custos/margens; 'external' só o autorizado. */
-export function ResultsDashboard(props: { result: PricingResult; audience: 'internal' | 'external' }) {
+export function ResultsDashboard(props: { result: PricingResult; users: number; audience: 'internal' | 'external' }) {
   const r = props.result;
   const internal = props.audience === 'internal';
+  // Core MRR por usuário elegível. Usa a base real (props.users), não uma reconstrução a partir do MAU.
+  const perUser = props.users > 0 && r.core > 0 ? (r.core / props.users).toFixed(2) : '—';
   return (
     <div className="panel sticky">
       <div className="tier">
@@ -17,7 +19,7 @@ export function ResultsDashboard(props: { result: PricingResult; audience: 'inte
         </div>
         <div style={{ textAlign: 'right' }}>
           <div className="u">R$ / usuário</div>
-          <div className="t num">{r.core && r.mau ? (r.core / (r.mau / 0.4)).toFixed(2) : '—'}</div>
+          <div className="t num">{perUser}</div>
         </div>
       </div>
 

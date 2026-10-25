@@ -29,6 +29,10 @@ export function ServicesPanel(props: { input: PricingInput; update: (patch: Inpu
     tablePriceDefault: CURRENT_PREMISES.dedicatedTablePrice.value,
     hourlyRate: CURRENT_PREMISES.hourlyRate.value,
     implementationHours: input.complexity.implementationHours,
+    compCapDefault: CURRENT_PREMISES.serviceCompCap.value,
+    productiveHoursDefault: CURRENT_PREMISES.serviceProductiveHours.value,
+    minMarginDefault: CURRENT_PREMISES.serviceMinMargin.value,
+    hourMinMarginDefault: CURRENT_PREMISES.serviceHourMinMargin.value,
   });
 
   return (

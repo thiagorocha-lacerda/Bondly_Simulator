@@ -60,13 +60,27 @@ export function services(args: {
   tablePriceDefault: number;
   hourlyRate: number;
   implementationHours: number;
+  compCapDefault: number;
+  productiveHoursDefault: number;
+  minMarginDefault: number;
+  hourMinMarginDefault: number;
 }): ServicesResult {
-  const { params, taxRate, tablePriceDefault, hourlyRate, implementationHours } = args;
+  const {
+    params,
+    taxRate,
+    tablePriceDefault,
+    hourlyRate,
+    implementationHours,
+    compCapDefault,
+    productiveHoursDefault,
+    minMarginDefault,
+    hourMinMarginDefault,
+  } = args;
   const passthrough = Math.min(0.99, pos(params.passthroughPct));
   const net = 1 - taxRate - passthrough;
   const pt0 = pos(params.tablePrice || tablePriceDefault);
-  const mmin = pos(params.minMargin);
-  const cap = pos(params.compCap);
+  const mmin = pos(params.minMargin || minMarginDefault);
+  const cap = pos(params.compCap || compCapDefault);
   const tgtRaw = params.targetMargin != null && params.targetMargin !== undefined ? pos(params.targetMargin) : null;
 
   const profiles: ProfileResult[] = params.profiles.map((prof, i) => {
@@ -114,9 +128,9 @@ export function services(args: {
   const belowMin = profiles.filter((p) => p.quantity > 0 && p.status === 'r').length;
 
   // Horas adicionais (R-031)
-  const hprod = Math.max(1, params.productiveHoursPerMonth);
+  const hprod = Math.max(1, params.productiveHoursPerMonth || productiveHoursDefault);
   const hourCost = params.hourCost != null ? pos(params.hourCost) : cap / hprod;
-  const hmin = pos(params.hourMinMargin);
+  const hmin = pos(params.hourMinMargin || hourMinMarginDefault);
   const hourPms = (hourCost + hmin) / net;
   const hourPcs = hourlyRate >= hourPms ? hourlyRate : Math.ceil(hourPms - 1e-9);
   const hourPrice = params.negotiatedHourPrice != null ? pos(params.negotiatedHourPrice) : hourPcs;

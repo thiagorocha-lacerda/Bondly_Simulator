@@ -10,6 +10,7 @@ import { PreviewModal } from '../components/PreviewModal';
 import { ServicesPanel } from '../components/ServicesPanel';
 import { CampaignPanel } from '../components/CampaignPanel';
 import { B2cPanel } from '../components/B2cPanel';
+import { ArkaPanel } from '../components/ArkaPanel';
 
 type Mode = 'quick' | 'advanced';
 type Audience = 'internal' | 'external';
@@ -92,7 +93,7 @@ export function App() {
             <QuickMode input={input} update={update} selectedModules={modules} onModules={setModules} />
           ) : (
             <>
-              <AdvancedMode input={input} update={update} />
+              <AdvancedMode input={input} update={update} selectedModules={modules} onModules={setModules} />
               <div style={{ height: 16 }} />
               <ServicesPanel input={input} update={update} />
               <div style={{ height: 16 }} />
@@ -114,7 +115,10 @@ export function App() {
           </p>
         </div>
 
-        <ResultsDashboard result={result} audience={audience} />
+        <div>
+          <ResultsDashboard result={result} users={input.volume.users} audience={audience} />
+          <ArkaPanel input={input} />
+        </div>
       </div>
 
       {preview && <PreviewModal input={input} onClose={() => setPreview(false)} />}
