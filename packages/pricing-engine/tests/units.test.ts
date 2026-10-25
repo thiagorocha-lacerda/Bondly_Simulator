@@ -79,6 +79,24 @@ describe('Complexidade (R-011/R-012)', () => {
     expect(r.score).toBeCloseTo(100, 6);
     expect(r.band.name).toContain('Estratégico');
   });
+  it('blindagem: pontos fora da faixa são clampados ao teto; score nunca passa de 100', () => {
+    const r = complexity(
+      // consumidor externo (§21) manda valores arbitrários acima do máximo
+      { integrations: 99, modules: 99, slaPoints: 999, customizationPoints: 999, aiPoints: 999, migrationPoints: 999, implementationHours: 0 },
+      P.complexityBands.value,
+    );
+    expect(r.score).toBeCloseTo(100, 6); // satura em 100, não explode
+    expect(r.band.name).toContain('Estratégico');
+    for (const part of r.parts) expect(part.value).toBeLessThanOrEqual(part.max + 1e-9);
+  });
+  it('blindagem: pontos negativos/NaN são tratados como 0', () => {
+    const r = complexity(
+      { integrations: -5, modules: 0, slaPoints: -10, customizationPoints: Number.NaN, aiPoints: 0, migrationPoints: 0, implementationHours: 0 },
+      P.complexityBands.value,
+    );
+    expect(r.score).toBe(0);
+    for (const part of r.parts) expect(part.value).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('Comunicação e COGS (R-005/R-006)', () => {
