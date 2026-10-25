@@ -80,17 +80,9 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
   if (r.servicesMrr > 0) row('Recursos dedicados', `${brl(r.servicesMrr)}/mês`);
   if (snap.input.negotiation.term > 12) row('Condição por prazo', pct(r.termDiscount));
 
-  // Módulo B2C (quando incluído na proposta)
-  if (snap.b2c) {
-    const b = snap.b2c.result.tot;
-    y += 8;
-    rule();
-    line('Assinaturas B2C (jul–dez/2027)', 13, true);
-    row('Assinantes ativos em dez', Math.round(snap.b2c.result.tot.end).toLocaleString('pt-BR'));
-    row('Valor transacionado no semestre', brl(b.gmv));
-    row('Receita de processamento', brl(b.rev));
-    row('Resultado Bondly no semestre', brl(b.total));
-  }
+  // Nota: o módulo B2C NÃO entra no PDF externo. "Resultado Bondly" e o split com a Minu são
+  // números internos (margem da Bondly); a proposta externa (§12/§16) não os expõe. O B2C continua
+  // congelado no snapshot (reprodutibilidade/uso interno), apenas não é renderizado aqui.
 
   // Cenários de sensibilidade (§13) — conservador / base / otimista
   {
@@ -107,14 +99,13 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
       base: 'Base',
       otimista: 'Otimista (+30% MAU)',
     };
-    // cabeçalho
+    // cabeçalho — visão externa: só receita (Core MRR / TCV), SEM margem técnica (interna, §12/§16)
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor('#3e4152');
     doc.text('Cenário', M, y);
-    doc.text('Core MRR', W - M - 220, y, { align: 'right' });
-    doc.text('TCV', W - M - 90, y, { align: 'right' });
-    doc.text('Margem', W - M, y, { align: 'right' });
+    doc.text('Core MRR', W - M - 150, y, { align: 'right' });
+    doc.text('TCV', W - M, y, { align: 'right' });
     y += 16;
     doc.setDrawColor('#e1ddd0');
     doc.line(M, y - 6, W - M, y - 6);
@@ -124,9 +115,8 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
       doc.setFontSize(10);
       doc.setTextColor('#12131c');
       doc.text(labels[s.name] ?? s.name, M, y);
-      doc.text(`${brl(s.result.core)}/mês`, W - M - 220, y, { align: 'right' });
-      doc.text(brl(s.result.tcvClient), W - M - 90, y, { align: 'right' });
-      doc.text(pct(s.result.technicalMargin), W - M, y, { align: 'right' });
+      doc.text(`${brl(s.result.core)}/mês`, W - M - 150, y, { align: 'right' });
+      doc.text(brl(s.result.tcvClient), W - M, y, { align: 'right' });
       y += 18;
     }
   }
