@@ -100,7 +100,20 @@ export function AdvancedMode(props: {
       <Panel title="A negociação" sub="Tudo o que muda o preço — e quem aprova.">
         <Toggle label="Opção comercial" value={input.negotiation.option} options={[{ v: 'floor', label: 'Piso' }, { v: 'recommended', label: 'Recomendado' }, { v: 'premium', label: 'Premium' }]} onChange={(v) => update({ negotiation: { option: v as CommercialOption } })} />
         <PercentField label="Desconto extra (% do Platform Fee)" hint="Até 5% Comercial · 5–10% Head · 10–15% CEO+Fin." value={input.negotiation.extraDiscount} onChange={(v) => update({ negotiation: { extraDiscount: v } })} />
-        <NumberField label="Recursos dedicados (qtd. Perfil 1)" hint="R$ 25 mil Total Comp · R$ 35 mil tabela por padrão." value={input.services.profiles[0]?.quantity ?? 0} min={0} onChange={(v) => update({ services: { profiles: [{ name: 'Perfil 1', quantity: v, totalCompensation: 25000, directCosts: 0 }] } })} />
+        <NumberField
+          label="Recursos dedicados (qtd. Perfil 1)"
+          hint="R$ 25 mil Total Comp · R$ 35 mil tabela por padrão. Ajuste perfis/custos na seção Serviços."
+          value={input.services.profiles[0]?.quantity ?? 0}
+          min={0}
+          onChange={(v) => {
+            const existing = input.services.profiles;
+            const first = existing[0] ?? { name: 'Perfil 1', quantity: 0, totalCompensation: 25000, directCosts: 0 };
+            const next = existing.length
+              ? existing.map((p, i) => (i === 0 ? { ...p, quantity: v } : p))
+              : [{ ...first, quantity: v }];
+            update({ services: { profiles: next } });
+          }}
+        />
         <Toggle label="Potenciais do corredor de desconto" value={input.negotiation.expansion ? 'exp' : input.negotiation.strategic ? 'key' : 'none'} options={[{ v: 'none', label: 'Padrão' }, { v: 'exp', label: 'Expansão alta' }, { v: 'key', label: 'Estratégico' }]} onChange={(v) => update({ negotiation: { expansion: v === 'exp', strategic: v === 'key' } })} />
         <Toggle label="Venda pela Minu" value={input.negotiation.viaMinu ? 1 : 0} options={[{ v: 1, label: 'Sim' }, { v: 0, label: 'Direto Bondly' }]} onChange={(v) => update({ negotiation: { viaMinu: v === 1 } })} />
       </Panel>
