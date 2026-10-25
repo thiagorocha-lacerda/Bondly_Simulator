@@ -35,17 +35,19 @@ function loadRaw(): Partial<B2cInput> {
   }
 }
 
-function loadInclude(): boolean {
+function loadEnabled(): boolean {
   try {
-    return localStorage.getItem(INCLUDE_KEY) === '1';
+    return localStorage.getItem(ENABLED_KEY) === '1';
   } catch {
     return false;
   }
 }
 
-function loadEnabled(): boolean {
+function loadInclude(): boolean {
   try {
-    return localStorage.getItem(ENABLED_KEY) === '1';
+    // Normaliza no boot: include só vale se o módulo estiver habilitado (fecha estados órfãos
+    // enabled=false + include=true de versões anteriores ao encadeamento).
+    return localStorage.getItem(INCLUDE_KEY) === '1' && localStorage.getItem(ENABLED_KEY) === '1';
   } catch {
     return false;
   }

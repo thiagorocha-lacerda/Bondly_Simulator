@@ -26,4 +26,13 @@ describe('useB2c — habilitação do módulo de vendas', () => {
     act(() => result.current.setEnabled(true));
     expect(localStorage.getItem('bondly-ws-b2c-enabled')).toBe('1');
   });
+
+  it('boot normaliza include órfão: include=1 salvo com enabled!=1 carrega como false', () => {
+    // Simula localStorage de versão anterior (antes do encadeamento enabled→include).
+    localStorage.setItem('bondly-ws-b2c-include', '1');
+    localStorage.removeItem('bondly-ws-b2c-enabled'); // enabled ausente/false
+    const { result } = renderHook(() => useB2c());
+    expect(result.current.enabled).toBe(false);
+    expect(result.current.include).toBe(false); // normalizado no boot
+  });
 });

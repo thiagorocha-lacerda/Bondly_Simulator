@@ -35,11 +35,16 @@ describe('B2cPanel — módulo habilitável + confidencialidade', () => {
     expect(screen.getByText(/Participação da Minu/i)).toBeInTheDocument();
   });
 
-  it('habilitado (comercial): esconde Resultado Bondly e participação da Minu; mantém volume ao cliente', () => {
+  it('habilitado (comercial): esconde custo interno (gateway, tributos, antifraude, Minu, Resultado); mantém oferta ao cliente', () => {
     renderWith('external', true);
-    expect(screen.getByText(/Fee de processamento/i)).toBeInTheDocument(); // configuração do produto segue
+    expect(screen.getByText(/Fee de processamento/i)).toBeInTheDocument(); // oferta ao cliente segue
+    expect(screen.getByText(/Base elegível/i)).toBeInTheDocument();
     expect(screen.queryByText(/Resultado Bondly/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/Participação da Minu/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Gateway/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tributos sobre o fee/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Antifraude/i)).not.toBeInTheDocument();
+    // volume ao cliente permanece
     expect(screen.getByText(/Assinantes ativos em dez/i)).toBeInTheDocument();
     expect(screen.getByText(/Receita de processamento/i)).toBeInTheDocument();
   });

@@ -54,13 +54,15 @@ export function B2cPanel(props: {
           <NumberField label="Ticket médio mensal (R$)" value={input.ticket} min={0} step={0.5} onChange={(v) => set({ ticket: v })} />
           <PercentField label="Churn mensal" value={input.churn} step={0.5} onChange={(v) => set({ churn: v })} />
           <NumberField label="Fee mínimo por transação (R$)" value={input.minFee} min={0} step={0.1} onChange={(v) => set({ minFee: v })} />
-          <PercentField label="Gateway (% do transacionado)" value={input.gateway} step={0.5} onChange={(v) => set({ gateway: v })} />
-          <PercentField label="Tributos sobre o fee" value={input.tax} step={0.5} onChange={(v) => set({ tax: v })} />
           {internal && (
-            <PercentField label="Participação da Minu na margem positiva" value={input.minuShare} step={1} onChange={(v) => set({ minuShare: v })} />
+            <>
+              <PercentField label="Gateway (% do transacionado)" value={input.gateway} step={0.5} onChange={(v) => set({ gateway: v })} />
+              <PercentField label="Tributos sobre o fee" value={input.tax} step={0.5} onChange={(v) => set({ tax: v })} />
+              <PercentField label="Participação da Minu na margem positiva" value={input.minuShare} step={1} onChange={(v) => set({ minuShare: v })} />
+              <Toggle label="Antifraude — método" value={input.method} options={[{ v: 'progressiva', label: 'Progressiva · aprovada' }, { v: 'integral', label: 'Integral' }]} onChange={(v) => set({ method: v as AntifraudMethod })} />
+              <Toggle label="Antifraude — escopo" value={input.scope} options={[{ v: 'primeira', label: '1ª cobrança + troca' }, { v: 'todas', label: 'Todas as cobranças' }]} onChange={(v) => set({ scope: v as B2cScope })} />
+            </>
           )}
-          <Toggle label="Antifraude — método" value={input.method} options={[{ v: 'progressiva', label: 'Progressiva · aprovada' }, { v: 'integral', label: 'Integral' }]} onChange={(v) => set({ method: v as AntifraudMethod })} />
-          <Toggle label="Antifraude — escopo" value={input.scope} options={[{ v: 'primeira', label: '1ª cobrança + troca' }, { v: 'todas', label: 'Todas as cobranças' }]} onChange={(v) => set({ scope: v as B2cScope })} />
 
           <h3 style={{ marginTop: 16 }}>Resultado H2/2027</h3>
           <div className="big">
