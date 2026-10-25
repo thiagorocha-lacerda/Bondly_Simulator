@@ -37,7 +37,7 @@ jobs:
       - name: Typecheck (todos os workspaces)
         run: npm run typecheck
 
-      - name: Testes do Pricing Engine (40 testes, inclui paridade com o HTML)
+      - name: Testes (engine + UI — paridade com o HTML + confidencialidade §12/§16)
         run: npm run test
 
       - name: Build do Commercial Workspace
