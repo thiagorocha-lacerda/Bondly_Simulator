@@ -2,10 +2,15 @@ import { useMemo } from 'react';
 import { runB2c, CURRENT_PREMISES, type B2cInput, type AntifraudMethod, type B2cScope } from '@bondly/pricing-engine';
 import { Panel, NumberField, PercentField, Toggle } from './Fields';
 import { brl, pct, n0 } from '../services/defaults';
+import { useAudience } from '../app/audience';
 
 const B2C_MONTHS = ['jul/27', 'ago/27', 'set/27', 'out/27', 'nov/27', 'dez/27'];
 
-/** Assinaturas B2C (§7.5) — módulo de vendas habilitável. Estado vem do hook useB2c (fonte única); projeção via `runB2c`. */
+/**
+ * Assinaturas B2C (§7.5) — módulo de vendas habilitável. Estado vem do hook useB2c (fonte única);
+ * projeção via `runB2c`. Em visão comercial (external) NÃO expõe números internos (Resultado Bondly,
+ * split com a Minu, participação da Minu): mostra só o volume ao cliente (§12/§16).
+ */
 export function B2cPanel(props: {
   input: B2cInput;
   enabled: boolean;
@@ -15,6 +20,7 @@ export function B2cPanel(props: {
   setInclude: (on: boolean) => void;
 }) {
   const { input, set } = props;
+  const { internal } = useAudience();
   const result = useMemo(() => runB2c(input, CURRENT_PREMISES), [input]);
   const t = result.tot;
   const cls = (v: number): string => (v < -0.005 ? 'bad' : v > 0.005 ? 'ok' : 'info');
@@ -50,7 +56,9 @@ export function B2cPanel(props: {
           <NumberField label="Fee mínimo por transação (R$)" value={input.minFee} min={0} step={0.1} onChange={(v) => set({ minFee: v })} />
           <PercentField label="Gateway (% do transacionado)" value={input.gateway} step={0.5} onChange={(v) => set({ gateway: v })} />
           <PercentField label="Tributos sobre o fee" value={input.tax} step={0.5} onChange={(v) => set({ tax: v })} />
-          <PercentField label="Participação da Minu na margem positiva" value={input.minuShare} step={1} onChange={(v) => set({ minuShare: v })} />
+          {internal && (
+            <PercentField label="Participação da Minu na margem positiva" value={input.minuShare} step={1} onChange={(v) => set({ minuShare: v })} />
+          )}
           <Toggle label="Antifraude — método" value={input.method} options={[{ v: 'progressiva', label: 'Progressiva · aprovada' }, { v: 'integral', label: 'Integral' }]} onChange={(v) => set({ method: v as AntifraudMethod })} />
           <Toggle label="Antifraude — escopo" value={input.scope} options={[{ v: 'primeira', label: '1ª cobrança + troca' }, { v: 'todas', label: 'Todas as cobranças' }]} onChange={(v) => set({ scope: v as B2cScope })} />
 
@@ -59,13 +67,15 @@ export function B2cPanel(props: {
             <div><b className="num">{n0(t.end)}</b><span>Assinantes ativos em dez</span></div>
             <div><b className="num">{brl(t.gmv)}</b><span>Valor transacionado H2</span></div>
             <div><b className="num">{brl(t.rev)}</b><span>Receita de processamento</span></div>
-            <div className="minu"><b className="num">{brl(t.total)}</b><span>Resultado Bondly</span></div>
+            {internal && <div className="minu"><b className="num">{brl(t.total)}</b><span>Resultado Bondly</span></div>}
           </div>
-          <div className={`note ${cls(t.total)}`}>
-            {t.total < 0
-              ? `Com fee de ${pct(input.fee)}, a receita não cobre gateway, antifraude e impostos no semestre: a Bondly fica com ${brl(t.total)}.`
-              : `Margem positiva no semestre: a Bondly fica com ${brl(t.total)} (Minu ${brl(t.minu)}).`}
-          </div>
+          {internal && (
+            <div className={`note ${cls(t.total)}`}>
+              {t.total < 0
+                ? `Com fee de ${pct(input.fee)}, a receita não cobre gateway, antifraude e impostos no semestre: a Bondly fica com ${brl(t.total)}.`
+                : `Margem positiva no semestre: a Bondly fica com ${brl(t.total)} (Minu ${brl(t.minu)}).`}
+            </div>
+          )}
 
           <h3 style={{ marginTop: 16 }}>Projeção mensal</h3>
           <div style={{ overflowX: 'auto' }}>
@@ -79,7 +89,9 @@ export function B2cPanel(props: {
               <tbody>
                 <tr><td>Ativos no fim</td>{result.rows.map((row, i) => (<td key={i} className="num">{n0(row.end)}</td>))}</tr>
                 <tr><td>Receita</td>{result.rows.map((row, i) => (<td key={i} className="num">{brl(row.rev)}</td>))}</tr>
-                <tr><td>Resultado Bondly</td>{result.rows.map((row, i) => (<td key={i} className="num">{brl(row.total)}</td>))}</tr>
+                {internal && (
+                  <tr><td>Resultado Bondly</td>{result.rows.map((row, i) => (<td key={i} className="num">{brl(row.total)}</td>))}</tr>
+                )}
               </tbody>
             </table>
           </div>

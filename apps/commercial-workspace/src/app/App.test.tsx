@@ -41,7 +41,7 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
     expect(screen.getByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
   });
 
-  it('visão comercial esconde os painéis de custo interno do modo avançado (Serviços/Campanha/NF/Comunicação)', async () => {
+  it('visão comercial = modo rápido: esconde os tabs de modo e os painéis de custo interno do avançado', async () => {
     const user = userEvent.setup();
     render(
       <AudienceProvider initial="internal">
@@ -49,18 +49,21 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
       </AudienceProvider>,
     );
     await user.click(screen.getByRole('tab', { name: /Modo avançado/i }));
-    // interna: painéis internos presentes
+    // interna + avançado: painéis internos presentes
     expect(screen.getByRole('heading', { name: /Serviços — recursos dedicados/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Campanhas de marketing/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /Comunicação transacional/i })).toBeInTheDocument();
 
-    // comercial: somem
+    // comercial: tabs de modo somem e a view cai para modo rápido
     await user.click(screen.getByRole('button', { name: /Visão comercial/i }));
+    expect(screen.queryByRole('tab', { name: /Modo avançado/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Modo rápido/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Serviços — recursos dedicados/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Campanhas de marketing/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Comunicação transacional/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Leitura de notas fiscais/i })).not.toBeInTheDocument();
-    // B2C permanece (é módulo de vendas, não custo interno)
+    // QuickMode visível (campo exclusivo do rápido) + B2C permanece (é venda, não custo interno)
+    expect(screen.getByText(/MAU \(% da base\)/i)).toBeInTheDocument();
     expect(screen.getByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
   });
 });

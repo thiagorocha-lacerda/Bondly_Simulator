@@ -71,6 +71,10 @@ export function App() {
 
   const depIssues = validateDependencies(modules).filter((i) => i.kind === 'required');
 
+  // Visão comercial é inerentemente um resumo para o cliente → sempre modo rápido.
+  // O modo avançado (drivers internos de pricing) só faz sentido em visão interna.
+  const effectiveMode: Mode = internal ? mode : 'quick';
+
   return (
     <div className="wrap">
       <header className="app">
@@ -87,12 +91,16 @@ export function App() {
       </header>
 
       <div className="stepper" role="tablist" aria-label="Modo de configuração">
-        <button type="button" role="tab" aria-current={mode === 'quick' ? 'step' : undefined} onClick={() => setMode('quick')}>
-          Modo rápido
-        </button>
-        <button type="button" role="tab" aria-current={mode === 'advanced' ? 'step' : undefined} onClick={() => setMode('advanced')}>
-          Modo avançado
-        </button>
+        {internal && (
+          <>
+            <button type="button" role="tab" aria-current={mode === 'quick' ? 'step' : undefined} onClick={() => setMode('quick')}>
+              Modo rápido
+            </button>
+            <button type="button" role="tab" aria-current={mode === 'advanced' ? 'step' : undefined} onClick={() => setMode('advanced')}>
+              Modo avançado
+            </button>
+          </>
+        )}
         <span style={{ flex: 1 }} />
         <button type="button" aria-current={audience === 'internal' ? 'step' : undefined} onClick={() => setAudience('internal')}>
           Visão interna
@@ -114,7 +122,7 @@ export function App() {
 
       <div className="grid">
         <div>
-          {mode === 'quick' ? (
+          {effectiveMode === 'quick' ? (
             <QuickMode input={input} update={update} selectedModules={modules} onModules={setModules} />
           ) : (
             <>
