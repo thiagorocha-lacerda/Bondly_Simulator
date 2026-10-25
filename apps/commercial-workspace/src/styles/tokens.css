@@ -45,7 +45,7 @@
 :root[data-theme="light"] {
   --bg-primary: var(--base-sand-100); --bg-secondary: var(--base-white); --bg-tertiary: #eeebe2;
   --surface: var(--base-white); --surface-elevated: var(--base-white);
-  --text-primary: #12131c; --text-secondary: var(--base-ink-600); --text-muted: var(--base-ink-500);
+  --text-primary: #12131c; --text-secondary: var(--base-ink-600); --text-muted: #5f6479; /* AA 4.5:1 sobre surface/sand (era ink-500 #757a90 = 4.25:1, falhava texto pequeno) */
   --text-on-brand: var(--base-black); --text-on-deep: var(--base-white);
   --border: var(--base-sand-200); --border-strong: var(--base-ink-500);
   --brand: var(--base-brand-500); --brand-text: var(--base-brand-700); --deep: var(--base-navy-700); --on-deep: var(--base-white);
