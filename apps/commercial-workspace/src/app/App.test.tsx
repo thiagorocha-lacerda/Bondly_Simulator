@@ -22,11 +22,11 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
     expect(screen.getByRole('heading', { name: /Evidência comercial — ARKA/i })).toBeInTheDocument();
 
     // Alterna para visão comercial → ARKA some
-    await user.click(screen.getByRole('button', { name: /Visão comercial/i }));
+    await user.click(screen.getByRole('button', { name: /^Comercial$/i }));
     expect(screen.queryByRole('heading', { name: /Evidência comercial — ARKA/i })).not.toBeInTheDocument();
 
     // Volta para interna → ARKA reaparece
-    await user.click(screen.getByRole('button', { name: /Visão interna/i }));
+    await user.click(screen.getByRole('button', { name: /^Interna$/i }));
     expect(screen.getByRole('heading', { name: /Evidência comercial — ARKA/i })).toBeInTheDocument();
   });
 
@@ -55,7 +55,7 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
     expect(screen.getByRole('heading', { name: /Comunicação transacional/i })).toBeInTheDocument();
 
     // comercial: tabs de modo somem e a view cai para modo rápido
-    await user.click(screen.getByRole('button', { name: /Visão comercial/i }));
+    await user.click(screen.getByRole('button', { name: /^Comercial$/i }));
     expect(screen.queryByRole('tab', { name: /Modo avançado/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Modo rápido/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: /Serviços — recursos dedicados/i })).not.toBeInTheDocument();

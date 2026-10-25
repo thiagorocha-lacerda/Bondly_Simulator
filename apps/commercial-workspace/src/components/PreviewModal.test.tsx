@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { normalizeB2cInput, CURRENT_PREMISES } from '@bondly/pricing-engine';
 import { PreviewModal } from './PreviewModal';
 import { AudienceProvider, type Audience } from '../app/audience';
@@ -47,5 +47,16 @@ describe('PreviewModal — confidencialidade por audience (§12/§16)', () => {
       </AudienceProvider>,
     );
     expect(screen.queryByText(/Assinaturas B2C/i)).not.toBeInTheDocument();
+  });
+
+  it('Esc fecha o modal (acessibilidade de teclado)', () => {
+    const onClose = vi.fn();
+    render(
+      <AudienceProvider initial="internal">
+        <PreviewModal input={DEFAULT_INPUT} onClose={onClose} />
+      </AudienceProvider>,
+    );
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

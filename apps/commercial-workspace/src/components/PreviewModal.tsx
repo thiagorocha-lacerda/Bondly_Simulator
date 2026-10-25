@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { PricingInput, B2cInput } from '@bondly/pricing-engine';
 import { createProposalSnapshot, formatProposalId } from '@bondly/pricing-engine';
 import { generateProposalPdf } from '../services/pdf';
@@ -41,6 +41,23 @@ export function PreviewModal(props: {
   const [issuedId, setIssuedId] = useState<string | null>(null);
   const r = preview.result;
 
+  // Acessibilidade: ao fechar o modal, devolve o foco ao elemento que o abriu (evita armadilha
+  // de teclado) e permite fechar com Esc. O foco inicial vai ao diálogo.
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const opener = document.activeElement as HTMLElement | null;
+    dialogRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') props.onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      opener?.focus?.();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const download = async () => {
     setBusy(true);
     try {
@@ -61,7 +78,7 @@ export function PreviewModal(props: {
 
   return (
     <div className="pdfmodal-backdrop" role="dialog" aria-modal="true" aria-label="Pré-visualização da proposta" onClick={props.onClose}>
-      <div className="pdfmodal" onClick={(e) => e.stopPropagation()}>
+      <div className="pdfmodal" ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
         <h2>Pré-visualizar proposta</h2>
         <p className="sub">
           Identificador <b>{issuedId ?? 'definido ao gerar o PDF'}</b> · motor {r.engineVersion} · premissas {r.premisesVersion} ({r.premisesHash})

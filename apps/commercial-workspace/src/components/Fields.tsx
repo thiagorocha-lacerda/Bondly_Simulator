@@ -7,6 +7,7 @@ export function NumberField(props: {
   min?: number;
   max?: number;
   step?: number;
+  unit?: string;
   onChange: (v: number) => void;
 }) {
   return (
@@ -15,14 +16,17 @@ export function NumberField(props: {
         {props.label}
         {props.hint && <small>{props.hint}</small>}
       </label>
-      <input
-        type="number"
-        value={props.value}
-        min={props.min}
-        max={props.max}
-        step={props.step ?? 1}
-        onChange={(e) => props.onChange(Number(e.target.value) || 0)}
-      />
+      <div className="inputwrap">
+        <input
+          type="number"
+          value={props.value}
+          min={props.min}
+          max={props.max}
+          step={props.step ?? 1}
+          onChange={(e) => props.onChange(Number(e.target.value) || 0)}
+        />
+        {props.unit && <span className="unit" aria-hidden="true">{props.unit}</span>}
+      </div>
     </div>
   );
 }
@@ -40,14 +44,17 @@ export function PercentField(props: {
         {props.label}
         {props.hint && <small>{props.hint}</small>}
       </label>
-      <input
-        type="number"
-        value={Math.round(props.value * 1000) / 10}
-        min={0}
-        max={100}
-        step={props.step ?? 1}
-        onChange={(e) => props.onChange(Math.max(0, Math.min(100, Number(e.target.value) || 0)) / 100)}
-      />
+      <div className="inputwrap">
+        <input
+          type="number"
+          value={Math.round(props.value * 1000) / 10}
+          min={0}
+          max={100}
+          step={props.step ?? 1}
+          onChange={(e) => props.onChange(Math.max(0, Math.min(100, Number(e.target.value) || 0)) / 100)}
+        />
+        <span className="unit" aria-hidden="true">%</span>
+      </div>
     </div>
   );
 }

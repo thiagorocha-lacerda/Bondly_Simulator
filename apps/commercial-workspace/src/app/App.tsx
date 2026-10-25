@@ -104,24 +104,27 @@ export function App() {
         </div>
       </header>
 
-      <div className="stepper" role="tablist" aria-label="Modo de configuração">
+      <div className="stepper">
         {internal && (
-          <>
-            <button type="button" role="tab" aria-current={mode === 'quick' ? 'step' : undefined} onClick={() => setMode('quick')}>
+          <div className="modetabs" role="tablist" aria-label="Modo de configuração">
+            <button type="button" role="tab" aria-selected={mode === 'quick'} aria-current={mode === 'quick' ? 'step' : undefined} onClick={() => setMode('quick')}>
               Modo rápido
             </button>
-            <button type="button" role="tab" aria-current={mode === 'advanced' ? 'step' : undefined} onClick={() => setMode('advanced')}>
+            <button type="button" role="tab" aria-selected={mode === 'advanced'} aria-current={mode === 'advanced' ? 'step' : undefined} onClick={() => setMode('advanced')}>
               Modo avançado
             </button>
-          </>
+          </div>
         )}
         {internal && <span style={{ flex: 1 }} />}
-        <button type="button" aria-current={audience === 'internal' ? 'step' : undefined} onClick={() => setAudience('internal')}>
-          Visão interna
-        </button>
-        <button type="button" aria-current={audience === 'external' ? 'step' : undefined} onClick={() => setAudience('external')}>
-          Visão comercial
-        </button>
+        <div className="audienceswitch" role="group" aria-label="Visão (o que aparece na tela)">
+          <span className="switchlabel" title="A visão comercial oculta custos, margens e dados internos — segura para mostrar ao cliente.">Visão:</span>
+          <button type="button" aria-pressed={audience === 'internal'} onClick={() => setAudience('internal')}>
+            Interna
+          </button>
+          <button type="button" aria-pressed={audience === 'external'} title="Oculta custos, margens, ARKA e resultado B2C/Minu — segura para o cliente." onClick={() => setAudience('external')}>
+            Comercial
+          </button>
+        </div>
       </div>
 
       {depIssues.length > 0 && (
