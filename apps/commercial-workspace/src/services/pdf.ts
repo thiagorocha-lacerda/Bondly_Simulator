@@ -1,14 +1,16 @@
 import type { jsPDF } from 'jspdf';
 import type { ProposalSnapshot } from '@bondly/pricing-engine';
-import { brl } from './defaults';
+import { MODULE_CATALOG, arkaClassification } from '@bondly/pricing-engine';
+import { brl, pct } from './defaults';
 
 /**
- * Gerador do PDF da proposta — PEÇA COMERCIAL para o time compartilhar com o CLIENTE (§16).
- * Consome EXCLUSIVAMENTE o snapshot do Pricing Engine (paridade Engine = Dashboard = PDF, §20).
- * É sempre a VISÃO EXTERNA: foca valor e investimento ao cliente; não expõe custos, margens, fees
- * internos, ARKA nem o resultado Bondly do B2C (§12/§16). jsPDF E o logo (data URL ~22KB) são
- * carregados via import() dinâmico: ficam fora do bundle principal e só baixam ao gerar um PDF
- * (code-splitting, §27.1).
+ * Gerador do PDF da proposta (§16). Consome EXCLUSIVAMENTE o snapshot do Pricing Engine
+ * (paridade Engine = Dashboard = PDF, §20). Dois públicos:
+ *   - audience='external' (padrão): PEÇA COMERCIAL para o CLIENTE — foca valor/investimento;
+ *     NÃO expõe custos, margens, fees internos, ARKA nem o resultado Bondly do B2C (§12/§16).
+ *   - audience='internal': PROPOSTA COMPLETA para uso interno — acrescenta composição da
+ *     mensalidade, COGS, margens, alçada, ARKA e o resultado Bondly/Minu do B2C.
+ * jsPDF e o logo (data URL ~22KB) carregam via import() dinâmico (code-splitting, §27.1).
  */
 
 const NAVY = '#2a2470';
@@ -19,7 +21,13 @@ const MUTED = '#5f6479';
 const SAND = '#f6f4ee';
 const SAND_LINE = '#e1ddd0';
 
-export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF> {
+const moduleName = (id: string): string => MODULE_CATALOG.find((m) => m.id === id)?.name ?? id;
+
+export async function generateProposalPdf(
+  snap: ProposalSnapshot,
+  audience: 'internal' | 'external' = 'external',
+): Promise<jsPDF> {
+  const internal = audience === 'internal';
   const { jsPDF: JsPDF } = await import('jspdf');
   const { BONDLY_LOGO_PNG, BONDLY_LOGO_W, BONDLY_LOGO_H } = await import('../assets/logo');
   const r = snap.result;
@@ -92,7 +100,7 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(12);
   doc.setTextColor(AMBER);
-  doc.text('PROPOSTA COMERCIAL · 2027', M, 150);
+  doc.text(internal ? 'PROPOSTA · USO INTERNO · 2027' : 'PROPOSTA COMERCIAL · 2027', M, 150);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(26);
   doc.setTextColor('#ffffff');
@@ -157,7 +165,11 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
   );
   kv('Plano', r.tierName);
   kv('Base de usuários elegíveis', snap.input.volume.users.toLocaleString('pt-BR'));
-  kv('Módulos contratados', `${Math.max(1, snap.input.complexity.modules)} módulo(s)`);
+  if (snap.selectedModules && snap.selectedModules.length > 0) {
+    kv('Módulos contratados', snap.selectedModules.map(moduleName).join(', '));
+  } else {
+    kv('Módulos contratados', `${Math.max(1, snap.input.complexity.modules)} módulo(s)`);
+  }
   kv('Prazo do contrato', `${snap.input.negotiation.term} meses`);
   if (r.servicesMrr > 0) kv('Equipe dedicada (recorrente)', `${brl(r.servicesMrr)}/mês`);
 
@@ -194,17 +206,63 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
     y += 20;
   }
 
-  // ---- B2C (quando incluído; VISÃO EXTERNA = só volume ao cliente) --------
+  // ---- B2C (quando incluído) ----------------------------------------------
   if (snap.b2c) {
     const b = snap.b2c.result.tot;
     sectionTitle('Assinaturas B2C · 2º semestre de 2027');
+    if (internal) {
+      paragraph('Projeção do produto de assinaturas no 2º semestre de 2027, com o resultado Bondly e o split com a Minu.');
+      kv('Assinantes ativos em dezembro', b.end.toLocaleString('pt-BR', { maximumFractionDigits: 0 }));
+      kv('Valor transacionado no semestre (GMV)', brl(b.gmv));
+      kv('Receita de processamento', brl(b.rev));
+      kv('Resultado Bondly no semestre', brl(b.total), true);
+      kv('Parte da Minu', brl(b.minu));
+    } else {
+      paragraph(
+        'Projeção do produto de assinaturas para a base, no 2º semestre de 2027. ' +
+          'Valores de alcance ao cliente — sem dados internos.',
+      );
+      kv('Assinantes ativos em dezembro', b.end.toLocaleString('pt-BR', { maximumFractionDigits: 0 }));
+      kv('Valor transacionado no semestre (GMV)', brl(b.gmv));
+      kv('Receita de processamento', brl(b.rev));
+    }
+  }
+
+  // ---- SEÇÕES INTERNAS (uso interno apenas) -------------------------------
+  if (internal) {
+    sectionTitle('Composição da mensalidade (interno)');
+    kv('Platform Fee', `${brl(r.platformFee)}/mês`);
+    kv('DAU Usage', `${brl(r.usage)}/mês`);
+    kv('Processing', `${brl(r.processing)}/mês`);
+    if (r.servicesMrr > 0) kv('Recursos dedicados', `${brl(r.servicesMrr)}/mês`);
+    kv('Receita recorrente Core', `${brl(r.core)}/mês`, true);
+
+    sectionTitle('Custos e margens (interno)');
+    kv('Custo variável (COGS)', `${brl(r.costs.total)}/mês`);
     paragraph(
-      'Projeção do produto de assinaturas para a base, no 2º semestre de 2027. ' +
-        'Valores de alcance ao cliente — sem dados internos.',
+      `CleverTap ${brl(r.costs.cleverTap)} · infra ${brl(r.costs.infra)} · NF ${brl(r.costs.invoices)} · ` +
+        `comunicação ${brl(r.costs.communication)}`,
+      MUTED,
+      10,
     );
-    kv('Assinantes ativos em dezembro', b.end.toLocaleString('pt-BR', { maximumFractionDigits: 0 }));
-    kv('Valor transacionado no semestre (GMV)', brl(b.gmv));
-    kv('Receita de processamento', brl(b.rev));
+    kv('Margem técnica', pct(r.technicalMargin), true);
+    kv('Margem líquida (Y1 / regime)', `${pct(r.netMarginY1)} / ${pct(r.netMarginSteady)}`);
+    kv('Status de margem', r.marginStatus);
+    kv('Alçada de desconto', r.discountAuthority);
+    if (snap.input.negotiation.viaMinu) {
+      kv('Fee Minu — conversão (mês)', brl(r.minuConversionFee));
+      kv('Fee Minu — conta (mês)', brl(r.minuAccountFee));
+      kv('Minu ganha no 1º ano', brl(r.minuYear1));
+    }
+
+    sectionTitle('Evidência comercial — ARKA (interno)');
+    const arka = arkaClassification(snap.input.arka);
+    kv('Classe ARKA', `${arka.arkaClass} · ${arka.stage.maturity} (estágio ${arka.stage.rank}/15)`);
+    kv('Elegível ao Orçamento Compromissado', arka.allOk ? 'Sim' : 'Não — completar evidência');
+    paragraph(arka.note, MUTED, 10);
+    if (r.warnings.length > 0) {
+      paragraph('Alertas: ' + r.warnings.map((w) => w.message).join(' '), MUTED, 10);
+    }
   }
 
   // ---- PRÓXIMOS PASSOS -----------------------------------------------------
@@ -231,9 +289,11 @@ export async function generateProposalPdf(snap: ProposalSnapshot): Promise<jsPDF
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(MUTED);
-    doc.text(`Bondly · Proposta ${snap.id}`, M, H - 30);
+    doc.text(internal ? `Bondly · Proposta ${snap.id} · USO INTERNO` : `Bondly · Proposta ${snap.id}`, M, H - 30);
     doc.text(
-      `Emitida em ${new Date(snap.issuedAt).toLocaleDateString('pt-BR')} · pág. ${p}/${pages}`,
+      internal
+        ? `Motor ${r.engineVersion} · premissas ${r.premisesVersion} (${r.premisesHash}) · pág. ${p}/${pages}`
+        : `Emitida em ${new Date(snap.issuedAt).toLocaleDateString('pt-BR')} · pág. ${p}/${pages}`,
       W - M,
       H - 30,
       { align: 'right' },

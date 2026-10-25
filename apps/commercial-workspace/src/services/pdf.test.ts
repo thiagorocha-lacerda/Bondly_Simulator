@@ -29,4 +29,17 @@ describe('generateProposalPdf — peça comercial', () => {
     const head = String.fromCharCode(...new Uint8Array(doc.output('arraybuffer').slice(0, 5)));
     expect(head).toBe('%PDF-');
   });
+
+  it('PDF interno tem mais páginas/conteúdo que o do cliente (seções internas)', async () => {
+    const snap = createProposalSnapshot({
+      id: 'BONDLY-2027-000003',
+      input: DEFAULT_INPUT,
+      selectedModules: ['points', 'engagement'],
+    });
+    const ext = await generateProposalPdf(snap, 'external');
+    const int = await generateProposalPdf(snap, 'internal');
+    // o interno acrescenta composição/COGS/margens/ARKA → documento maior
+    expect(int.output('arraybuffer').byteLength).toBeGreaterThan(ext.output('arraybuffer').byteLength);
+    expect(snap.selectedModules).toEqual(['points', 'engagement']);
+  });
 });

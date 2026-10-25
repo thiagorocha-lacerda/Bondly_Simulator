@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { PricingInput, B2cInput } from '@bondly/pricing-engine';
+import type { PricingInput, B2cInput, ModuleId } from '@bondly/pricing-engine';
 import { createProposalSnapshot, formatProposalId } from '@bondly/pricing-engine';
 import { generateProposalPdf } from '../services/pdf';
 import { brl } from '../services/defaults';
@@ -33,6 +33,7 @@ function commitSequence(n: number): void {
 export function PreviewModal(props: {
   input: PricingInput;
   b2cInput?: B2cInput | undefined;
+  selectedModules?: readonly ModuleId[];
   onClose: () => void;
 }) {
   const { internal } = useAudience();
@@ -42,6 +43,7 @@ export function PreviewModal(props: {
       id: formatProposalId(0),
       input: props.input,
       ...(props.b2cInput ? { b2cInput: props.b2cInput } : {}),
+      ...(props.selectedModules ? { selectedModules: props.selectedModules } : {}),
     }),
   );
   const [confirmed, setConfirmed] = useState(false);
@@ -68,11 +70,12 @@ export function PreviewModal(props: {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const download = async () => {
+  // Gera o PDF ANTES de consumir a sequência: se a geração falhar, nenhum identificador é
+  // queimado (o próximo clique reusa o mesmo número). Só persiste o contador no sucesso.
+  // `kind` escolhe a peça: 'external' (cliente) ou 'internal' (completa).
+  const download = async (kind: 'internal' | 'external') => {
     setBusy(true);
     setError(null);
-    // Gera o PDF ANTES de consumir a sequência: se a geração falhar, nenhum identificador é
-    // queimado (o próximo clique reusa o mesmo número). Só persiste o contador no sucesso.
     try {
       const n = peekNextSequence();
       const id = formatProposalId(n);
@@ -80,9 +83,11 @@ export function PreviewModal(props: {
         id,
         input: props.input,
         ...(props.b2cInput ? { b2cInput: props.b2cInput } : {}),
+        ...(props.selectedModules ? { selectedModules: props.selectedModules } : {}),
       });
-      const doc = await generateProposalPdf(snap);
-      doc.save(`${snap.id}.pdf`);
+      const doc = await generateProposalPdf(snap, kind);
+      const suffix = kind === 'internal' ? '-INTERNO' : '';
+      doc.save(`${snap.id}${suffix}.pdf`);
       commitSequence(n); // consome o número só agora, após sucesso
       setIssuedId(id);
     } catch (e) {
@@ -145,15 +150,22 @@ export function PreviewModal(props: {
         </label>
 
         <div className="actions">
-          <button className="cta" type="button" disabled={!confirmed || busy} onClick={() => void download()} style={{ opacity: confirmed && !busy ? 1 : 0.5 }}>
-            {busy ? 'Gerando…' : issuedId && !error ? 'Gerar novamente' : 'Gerar PDF'}
+          <button className="cta" type="button" disabled={!confirmed || busy} onClick={() => void download('external')} style={{ opacity: confirmed && !busy ? 1 : 0.5 }}>
+            {busy ? 'Gerando…' : 'Gerar PDF do cliente'}
           </button>
+          {internal && (
+            <button className="ghostbtn" type="button" disabled={!confirmed || busy} onClick={() => void download('internal')} style={{ opacity: confirmed && !busy ? 1 : 0.5 }}>
+              Gerar PDF interno (completo)
+            </button>
+          )}
           <button className="ghostbtn" type="button" onClick={props.onClose}>
             {issuedId && !error ? 'Fechar' : 'Cancelar'}
           </button>
         </div>
         <p className="sub" style={{ marginTop: 10 }}>
-          Este snapshot é imutável: alterar a proposta depois de confirmar gera uma nova revisão.
+          {internal
+            ? 'O PDF do cliente omite custos, margens e dados internos. O PDF interno traz a composição completa, margens e ARKA.'
+            : 'Este snapshot é imutável: alterar a proposta depois de confirmar gera uma nova revisão.'}
         </p>
       </div>
     </div>

@@ -13,6 +13,7 @@ import { ENGINE_VERSION } from '../version.js';
 import { calculate } from '../calculations/calculate.js';
 import { runB2c, type B2cInput, type B2cResult } from '../modules/b2c.js';
 import { defaultScenarios, type ScenarioResult } from '../scenarios/scenarios.js';
+import type { ModuleId } from '../modules/catalog.js';
 
 /** Bloco B2C opcional de uma proposta: input normalizado + projeção, congelados no snapshot. */
 export interface ProposalB2c {
@@ -32,6 +33,7 @@ export interface ProposalSnapshot {
   readonly result: PricingResult;
   readonly b2c?: ProposalB2c; // módulo B2C (quando a proposta o inclui)
   readonly scenarios: readonly ScenarioResult[]; // conservador/base/otimista (§13), congelados
+  readonly selectedModules?: readonly ModuleId[]; // módulos nominais selecionados (para a proposta)
 }
 
 /** Formata um identificador único de proposta `BONDLY-2027-NNNNNN` (§15). */
@@ -51,6 +53,7 @@ export function createProposalSnapshot(args: {
   revision?: number;
   issuedAt?: string;
   b2cInput?: B2cInput;
+  selectedModules?: readonly ModuleId[];
 }): ProposalSnapshot {
   const premises = args.premises ?? CURRENT_PREMISES;
   const result = calculate(args.input, premises);
@@ -70,6 +73,7 @@ export function createProposalSnapshot(args: {
     result,
     scenarios,
     ...(b2c ? { b2c } : {}),
+    ...(args.selectedModules ? { selectedModules: [...args.selectedModules] } : {}),
   });
 }
 
@@ -105,5 +109,6 @@ export function reviseProposal(
     premises: newPremises,
     revision: previous.revision + 1,
     ...(previous.b2c ? { b2cInput: previous.b2c.input } : {}),
+    ...(previous.selectedModules ? { selectedModules: previous.selectedModules } : {}),
   });
 }

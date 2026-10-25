@@ -25,7 +25,7 @@ describe('PreviewModal — falha ao gerar NÃO queima a sequência (§15)', () =
     );
     // confirma e tenta gerar
     fireEvent.click(screen.getByRole('checkbox'));
-    await user.click(screen.getByRole('button', { name: /Gerar PDF/i }));
+    await user.click(screen.getByRole('button', { name: /Gerar PDF do cliente/i }));
 
     await waitFor(() => expect(screen.getByText(/Não foi possível gerar o PDF/i)).toBeInTheDocument());
     // a sequência NÃO foi consumida — continua 41
