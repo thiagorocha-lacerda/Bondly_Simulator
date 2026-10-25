@@ -22,6 +22,10 @@ export function ServicesPanel(props: { input: PricingInput; update: (patch: Inpu
   const addProfile = () => {
     update({ services: { profiles: [...profiles, { ...EMPTY, name: `Perfil ${profiles.length + 1}` }] } });
   };
+  const removeProfile = (i: number) => {
+    // Remove o perfil i. Se sobrar vazio, o fallback re-renderiza um "Perfil 1" em branco.
+    update({ services: { profiles: profiles.filter((_, idx) => idx !== i) } });
+  };
 
   const sv = computeServices({
     params: input.services,
@@ -53,7 +57,20 @@ export function ServicesPanel(props: { input: PricingInput; update: (patch: Inpu
       {profiles.map((p, i) => (
         <div key={i} style={{ borderTop: '1px solid var(--border)', paddingTop: 10, marginTop: 10 }}>
           <div className="field full">
-            <label>Perfil {i + 1}</label>
+            <label style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+              <span>Perfil {i + 1}</span>
+              {profiles.length > 1 && (
+                <button
+                  type="button"
+                  className="ghostbtn"
+                  style={{ padding: '2px 10px', fontSize: 'var(--fs-xs)' }}
+                  aria-label={`Remover ${p.name || `Perfil ${i + 1}`}`}
+                  onClick={() => removeProfile(i)}
+                >
+                  × Remover
+                </button>
+              )}
+            </label>
             <input type="text" value={p.name} onChange={(e) => setProfile(i, { name: e.target.value })} />
           </div>
           <NumberField label="Quantidade" value={p.quantity} min={0} onChange={(v) => setProfile(i, { quantity: v })} />
