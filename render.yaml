@@ -15,7 +15,7 @@
 
 services:
   - type: web
-    name: bondly-simulator
+    name: bondly-simulator2
     runtime: node
     plan: starter
     # Build do monorepo: compila o SPA (dist) e o servidor TypeScript (dist/server.js).
@@ -32,9 +32,9 @@ services:
       - key: STATIC_DIR
         value: /opt/render/project/src/apps/commercial-workspace/dist
       # PUBLIC_URL deve ser a URL pública real do serviço (ou domínio personalizado).
-      # Preencha no painel da Render APÓS o primeiro deploy conhecer o host *.onrender.com.
+      # Fixada no host do novo Web Service; se o Render gerar sufixo diferente, ajuste no painel.
       - key: PUBLIC_URL
-        sync: false
+        value: https://bondly-simulator2.onrender.com
       # Segredos — configurar no painel (Environment), NUNCA commitar:
       - key: GOOGLE_CLIENT_ID
         sync: false
