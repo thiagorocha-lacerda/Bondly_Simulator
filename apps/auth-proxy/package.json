@@ -1,0 +1,28 @@
+{
+  "name": "@bondly/auth-proxy",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "BFF/proxy de borda: OAuth Google + autorização por domínio + entrega protegida do SPA (Opção B).",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "dev": "tsc -p tsconfig.json && node dist/server.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "cookie": "^0.6.0",
+    "google-auth-library": "^9.15.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "@types/cookie": "^0.6.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

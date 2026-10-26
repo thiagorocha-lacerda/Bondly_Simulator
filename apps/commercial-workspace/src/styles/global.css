@@ -24,6 +24,19 @@ header.app {
 .brand span { color: var(--brand-text); }
 .meta { color: var(--text-muted); font-size: var(--fs-sm); }
 
+/* Cabeçalho: usuário autenticado + tema (§6) */
+.headerright { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.usermenu { display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 4px 6px 4px 4px; }
+.useravatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; }
+.useravatar--fallback { display: inline-flex; align-items: center; justify-content: center; background: var(--brand); color: #fff; font-size: 13px; font-weight: 700; }
+.userinfo { display: flex; flex-direction: column; line-height: 1.15; max-width: 180px; }
+.username { font-size: var(--fs-sm); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.useremail { font-size: var(--fs-xs); color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.logoutbtn { font-size: var(--fs-xs); font-weight: 700; color: var(--text-muted); text-decoration: none; border: 1px solid var(--border); border-radius: var(--radius-pill); padding: 4px 10px; }
+.logoutbtn:hover { color: var(--text); border-color: var(--text-muted); }
+.logoutbtn:focus-visible { outline: 3px solid var(--brand-text); outline-offset: 2px; }
+@media (max-width: 560px) { .userinfo { max-width: 120px; } .useremail { display: none; } }
+
 .grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin-top: 20px; align-items: start; }
 /* Coluna de resultado acompanha a rolagem como um bloco; rola internamente se mais alta que a viewport. */
 .result-col { position: sticky; top: calc(14px + env(safe-area-inset-top, 0px)); display: flex; flex-direction: column; gap: 16px; max-height: calc(100vh - 28px); overflow: auto; }

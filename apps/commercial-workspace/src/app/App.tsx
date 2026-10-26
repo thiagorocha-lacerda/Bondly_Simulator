@@ -4,6 +4,7 @@ import { MODULE_CATALOG, validateDependencies } from '@bondly/pricing-engine';
 import { usePricing } from '../hooks/usePricing';
 import { useTheme } from '../hooks/useTheme';
 import { useB2c } from '../hooks/useB2c';
+import { useSession } from '../hooks/useSession';
 import { useAudience } from './audience';
 import { QuickMode } from '../components/QuickMode';
 import { AdvancedMode } from '../components/AdvancedMode';
@@ -14,6 +15,7 @@ import { CampaignPanel } from '../components/CampaignPanel';
 import { B2cPanel } from '../components/B2cPanel';
 import { ArkaPanel } from '../components/ArkaPanel';
 import { ScenarioPanel } from '../components/ScenarioPanel';
+import { UserMenu } from '../components/UserMenu';
 
 type Mode = 'quick' | 'advanced';
 
@@ -32,6 +34,7 @@ export function App() {
   const [theme, setTheme] = useTheme();
   const b2c = useB2c();
   const { audience, internal, setAudience } = useAudience();
+  const { user } = useSession();
   const [mode, setMode] = useState<Mode>('quick');
   const [preview, setPreview] = useState(false);
   const [modules, setModulesState] = useState<ModuleId[]>(loadModules);
@@ -98,9 +101,12 @@ export function App() {
           </div>
           <div className="meta">Pricing Engine {result.engineVersion} · premissas {result.premisesVersion} · {result.premisesHash}</div>
         </div>
-        <div className="toggle" role="group" aria-label="Tema">
-          <button type="button" aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>Claro</button>
-          <button type="button" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>Escuro</button>
+        <div className="headerright">
+          <UserMenu user={user} />
+          <div className="toggle" role="group" aria-label="Tema">
+            <button type="button" aria-pressed={theme === 'light'} onClick={() => setTheme('light')}>Claro</button>
+            <button type="button" aria-pressed={theme === 'dark'} onClick={() => setTheme('dark')}>Escuro</button>
+          </div>
         </div>
       </header>
 

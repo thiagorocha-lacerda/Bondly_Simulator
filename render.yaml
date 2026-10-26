@@ -1,35 +1,44 @@
-# Render Blueprint — Bondly Commercial Platform (§27)
-# Deploy como Static Site: a app é uma SPA estática (Cenário A, sem backend/segredos).
-# A Render roda o build no monorepo e publica apenas o dist/ do Commercial Workspace.
+# Render Blueprint — Bondly Commercial Platform (§27 / Autenticação Opção B)
+#
+# ARQUITETURA (Opção B — login Google + proxy de borda):
+# O deploy deixa de ser Static Site e passa a ser um WEB SERVICE Node (@bondly/auth-proxy) que:
+#   1. faz o OAuth Google (Authorization Code + PKCE) e valida o ID token NO SERVIDOR;
+#   2. autoriza por domínio exato (minu.co, minutrade.com, grupoarka.co, brain3.com.br, coremidia.co);
+#   3. cria sessão em cookie HttpOnly/Secure/SameSite e SÓ ENTÃO serve o dist do SPA.
+# Sem sessão válida o navegador nem baixa o bundle — a proteção não é apenas visual.
+#
+# LIMITE HONESTO (§5): as regras de pricing seguem no bundle entregue a um usuário AUTORIZADO.
+# Este proxy barra quem não tem sessão; não cifra o conteúdo de quem já entrou. Mover cálculo/dados
+# para o servidor seria a Opção A. Ver docs/09-autenticacao-e-seguranca.md.
+#
 # Docs: https://render.com/docs/blueprint-spec
 
 services:
   - type: web
     name: bondly-simulator
-    runtime: static
-    # Build do monorepo (npm workspaces). O Pricing Engine é resolvido pela fonte no build do Vite.
-    buildCommand: npm ci && npm run build --workspace @bondly/commercial-workspace
-    staticPublishPath: apps/commercial-workspace/dist
-    # Node 20+ (motor e workspace exigem >=20)
+    runtime: node
+    plan: starter
+    # Build do monorepo: compila o SPA (dist) e o servidor TypeScript (dist/server.js).
+    buildCommand: npm ci && npm run build --workspace @bondly/commercial-workspace && npm run build --workspace @bondly/auth-proxy
+    startCommand: npm run start --workspace @bondly/auth-proxy
+    healthCheckPath: /healthz
+    autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: "20"
-    # SPA: todas as rotas servem index.html, SEM interceptar os assets com hash (§27.1)
-    routes:
-      - type: rewrite
-        source: /assets/*
-        destination: /assets/*
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    # Cabeçalhos de segurança/caching (§27.4/§27.7)
-    headers:
-      - path: /assets/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
+      - key: NODE_ENV
+        value: production
+      # STATIC_DIR aponta para o dist do SPA relativo ao processo do servidor.
+      - key: STATIC_DIR
+        value: /opt/render/project/src/apps/commercial-workspace/dist
+      # PUBLIC_URL deve ser a URL pública real do serviço (ou domínio personalizado).
+      # Preencha no painel da Render APÓS o primeiro deploy conhecer o host *.onrender.com.
+      - key: PUBLIC_URL
+        sync: false
+      # Segredos — configurar no painel (Environment), NUNCA commitar:
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true

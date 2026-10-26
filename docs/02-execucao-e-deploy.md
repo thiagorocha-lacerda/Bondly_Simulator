@@ -21,31 +21,34 @@ npm install
 O workspace resolve o Pricing Engine pela **fonte TypeScript** (alias Vite + tsconfig paths), então não
 há passo de build intermediário do pacote em dev. A Render compila o mesmo source no build.
 
-## Deploy na Render (§27) — PRONTO, não executado
+## Deploy na Render (§27 / Autenticação Opção B)
 
-A entrega está **pronta para publicar** como **Static Site** na Render, mas o deploy **não foi
-realizado**: exige acesso à conta Render e ao repositório. Não há URL de produção inventada.
+> **Mudança de modelo:** com a área logada (login Google + proxy de borda), o deploy deixou de ser
+> **Static Site** e passou a ser um **Web Service Node** (`@bondly/auth-proxy`) que autentica e só
+> então serve o SPA. Detalhes de OAuth, autorização por domínio, segurança, guia do Google Cloud e
+> checklist de publicação estão em `docs/09-autenticacao-e-seguranca.md`.
 
-Configuração já versionada em `render.yaml` (Blueprint):
+Configuração versionada em `render.yaml` (Blueprint):
 
 | Campo | Valor |
 |---|---|
-| Tipo de serviço | Static Site (`runtime: static`) |
-| Build Command | `npm ci && npm run build --workspace @bondly/commercial-workspace` |
-| Publish Directory | `apps/commercial-workspace/dist` |
+| Tipo de serviço | **Web Service** (`runtime: node`) |
+| Build Command | `npm ci && npm run build --workspace @bondly/commercial-workspace && npm run build --workspace @bondly/auth-proxy` |
+| Start Command | `npm run start --workspace @bondly/auth-proxy` |
+| Health check | `/healthz` |
 | Node | `NODE_VERSION=20` |
-| SPA fallback | rewrite `/*` → `/index.html`, preservando `/assets/*` |
-| Cabeçalhos | cache imutável em `/assets/*`; `X-Content-Type-Options`, `Referrer-Policy` |
+| SPA fallback | feito no servidor (rota sem arquivo → `index.html`, preservando `/assets/*`) |
+| Segredos | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` (sync:false); `SESSION_SECRET` (generateValue) |
+| Vars | `NODE_ENV=production`, `STATIC_DIR`, `PUBLIC_URL` (a URL real pós-1º deploy) |
 
 ### Passos para publicar (quando houver acesso)
 
-1. Render Dashboard → **New** → **Blueprint** → conectar o repositório `Bondly_Simulator`.
-2. A Render lê `render.yaml` e cria o Static Site `bondly-simulator` com build/publish/rewrites prontos.
-   Alternativa manual: **New → Static Site**, Build Command e Publish Directory da tabela acima.
-3. Variáveis de ambiente: ver `.env.example`. **Cenário A não exige segredos**; nunca colocar
-   credenciais em `VITE_*` (vão para o bundle do cliente). `NODE_VERSION=20` já vem no Blueprint.
-4. Deploy automático a cada push na branch de produção; PR Previews quando habilitados no serviço.
-5. Rodar o checklist de homologação (`docs/07-checklist-homologacao.md`) na URL real `*.onrender.com`.
+1. Criar o OAuth Client no **Google Cloud Console** (ver `docs/09`, §5) com origens/redirects reais.
+2. Render Dashboard → **New → Blueprint** → conectar o repositório; a Render lê `render.yaml` e cria
+   o **Web Service** `bondly-simulator`.
+3. Preencher os segredos no painel (Environment). **Nunca commitar.**
+4. Após o 1º deploy, setar `PUBLIC_URL` com o host `*.onrender.com` e **redeploy**.
+5. Validar o login na URL real e rodar o checklist de homologação + o de `docs/09` (§6).
 
 ### Variáveis de ambiente
 
