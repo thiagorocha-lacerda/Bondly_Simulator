@@ -30,15 +30,16 @@ describe('App — ArkaPanel oculto em visão comercial (§12/§16)', () => {
     expect(screen.getByRole('heading', { name: /Evidência comercial — ARKA/i })).toBeInTheDocument();
   });
 
-  it('módulo B2C aparece no modo rápido (habilitável nos dois modos)', () => {
+  it('módulo B2C aparece no modo rápido (habilitável nos dois modos)', async () => {
     render(
       <AudienceProvider initial="internal">
         <App />
       </AudienceProvider>,
     );
-    // começa no modo rápido
+    // começa no modo rápido — aguarda o efeito de boot (sincroniza complexity.modules) assentar
+    // antes dos asserts, para não disparar um state update fora de act() (NIT de higiene de teste).
+    expect(await screen.findByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /Modo rápido/i })).toHaveAttribute('aria-current', 'step');
-    expect(screen.getByText(/Habilitar módulo Assinaturas B2C/i)).toBeInTheDocument();
   });
 
   it('visão comercial = modo rápido: esconde os tabs de modo e os painéis de custo interno do avançado', async () => {

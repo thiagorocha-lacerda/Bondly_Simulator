@@ -12,7 +12,7 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { join, normalize, extname } from 'node:path';
+import { join, normalize, extname, sep } from 'node:path';
 import { loadConfig, REDIRECT_PATH } from './config.js';
 import {
   SESSION_COOKIE,
@@ -70,7 +70,10 @@ async function serveStatic(res: ServerResponse, urlPath: string): Promise<void> 
   // normaliza e impede path traversal para fora do dist
   const rel = normalize(decodeURIComponent(urlPath)).replace(/^(\.\.(\/|\\|$))+/, '');
   let filePath = join(cfg.staticDir, rel);
-  if (!filePath.startsWith(cfg.staticDir)) {
+  // Guard de borda: filePath deve estar DENTRO de staticDir. Usa separador final para
+  // não casar um diretório irmão (ex.: /dist vs /dist-x); o próprio staticDir é permitido.
+  const staticRoot = cfg.staticDir.endsWith(sep) ? cfg.staticDir : cfg.staticDir + sep;
+  if (filePath !== cfg.staticDir && !filePath.startsWith(staticRoot)) {
     send(res, 403, 'forbidden');
     return;
   }
