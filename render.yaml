@@ -25,7 +25,7 @@ services:
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: "20"
+        value: "22"
       - key: NODE_ENV
         value: production
       # STATIC_DIR aponta para o dist do SPA relativo ao processo do servidor.
