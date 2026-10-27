@@ -12,8 +12,9 @@
  */
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
-import { join, normalize, extname, sep } from 'node:path';
+import { join, extname } from 'node:path';
 import { loadConfig, REDIRECT_PATH } from './config.js';
+import { resolveStaticPath } from './static-path.js';
 import {
   SESSION_COOKIE,
   createSessionToken,
@@ -67,16 +68,14 @@ function send(res: ServerResponse, status: number, body: string, contentType = '
 }
 
 async function serveStatic(res: ServerResponse, urlPath: string): Promise<void> {
-  // normaliza e impede path traversal para fora do dist
-  const rel = normalize(decodeURIComponent(urlPath)).replace(/^(\.\.(\/|\\|$))+/, '');
-  let filePath = join(cfg.staticDir, rel);
-  // Guard de borda: filePath deve estar DENTRO de staticDir. Usa separador final para
-  // não casar um diretório irmão (ex.: /dist vs /dist-x); o próprio staticDir é permitido.
-  const staticRoot = cfg.staticDir.endsWith(sep) ? cfg.staticDir : cfg.staticDir + sep;
-  if (filePath !== cfg.staticDir && !filePath.startsWith(staticRoot)) {
+  // guard puro (n2): barra traversal e casamento de diretório irmão — testado em static-path.test.ts
+  const resolved = resolveStaticPath(cfg.staticDir, urlPath);
+  if (!resolved.ok) {
     send(res, 403, 'forbidden');
     return;
   }
+  let { filePath } = resolved;
+  const { rel } = resolved;
   let isHtmlFallback = false;
   try {
     const s = await stat(filePath);
