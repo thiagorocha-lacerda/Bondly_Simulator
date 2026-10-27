@@ -19,7 +19,7 @@ services:
     runtime: node
     plan: starter
     # Build do monorepo: compila o SPA (dist) e o servidor TypeScript (dist/server.js).
-    buildCommand: npm ci && npm run build --workspace @bondly/commercial-workspace && npm run build --workspace @bondly/auth-proxy
+    buildCommand: npm ci && npm run build --workspace @bondly/pricing-engine && npm run build --workspace @bondly/commercial-workspace && npm run build --workspace @bondly/auth-proxy
     startCommand: npm run start --workspace @bondly/auth-proxy
     healthCheckPath: /healthz
     autoDeploy: true

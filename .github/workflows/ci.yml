@@ -37,11 +37,17 @@ jobs:
       - name: Typecheck (todos os workspaces)
         run: npm run typecheck
 
-      - name: Testes (engine + UI — paridade com o HTML + confidencialidade §12/§16)
+      - name: Testes (engine + UI + auth-proxy — paridade §12/§16 + segurança do gate)
         run: npm run test
 
       - name: Build do Commercial Workspace
         run: npm run build --workspace @bondly/commercial-workspace
 
+      - name: Build do Auth Proxy (Web Service)
+        run: npm run build --workspace @bondly/auth-proxy
+
       - name: Verificar artefato de build
-        run: test -f apps/commercial-workspace/dist/index.html && echo "dist OK"
+        run: test -f apps/commercial-workspace/dist/index.html && test -f apps/auth-proxy/dist/server.js && echo "dist OK"
+
+      - name: Auditoria de dependências (caminho de produção)
+        run: npm audit --omit=dev --audit-level=high
