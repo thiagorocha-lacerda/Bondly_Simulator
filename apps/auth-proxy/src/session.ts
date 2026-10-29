@@ -11,6 +11,7 @@
  */
 import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
 import { serialize, parse } from 'cookie';
+import { isRole, type Role } from './rbac.js';
 
 export const SESSION_COOKIE = 'bondly_sess';
 export const SESSION_TTL_SECONDS = 8 * 60 * 60; // 8h
@@ -20,6 +21,8 @@ export interface SessionData {
   readonly name?: string;
   readonly picture?: string;
   readonly domain: string;
+  /** Papel elevado pelo 2º fator (§7.2); ausente = autenticado por Google mas sem perfil. */
+  readonly role?: Role;
   /** epoch seconds de expiração */
   readonly exp: number;
 }
@@ -59,6 +62,8 @@ export function verifySessionToken(token: string | undefined, secret: string, no
   }
   if (typeof data.exp !== 'number' || data.exp <= Math.floor(now / 1000)) return null;
   if (typeof data.email !== 'string' || typeof data.domain !== 'string') return null;
+  // role é opcional; quando presente precisa ser um papel válido (senão a sessão é rejeitada)
+  if (data.role !== undefined && !isRole(data.role)) return null;
   return data;
 }
 

@@ -1,0 +1,51 @@
+import { describe, it, expect } from 'vitest';
+import { can, canSeeInternal, isRole, type Action } from './rbac.js';
+
+describe('RBAC — decisão pura (§6)', () => {
+  it('deny-by-default: papel ausente/inválido nunca autoriza', () => {
+    const actions: Action[] = ['proposal.read', 'proposal.see_internal', 'admin.manage_users'];
+    for (const a of actions) {
+      expect(can(undefined, a)).toBe(false);
+      expect(can('nope' as never, a)).toBe(false);
+    }
+  });
+
+  it('Negócios: edita comercial e desconto por tier, NÃO vê interno nem valida técnico', () => {
+    expect(can('business', 'proposal.edit_commercial')).toBe(true);
+    expect(can('business', 'proposal.edit_tier_discount')).toBe(true);
+    expect(can('business', 'proposal.read')).toBe(true);
+    expect(can('business', 'proposal.see_internal')).toBe(false);
+    expect(can('business', 'proposal.edit_technical')).toBe(false);
+    expect(can('business', 'proposal.validate_technical')).toBe(false);
+    expect(can('business', 'admin.manage_users')).toBe(false);
+  });
+
+  it('P&T: edita técnico, vê interno e valida; NÃO edita comercial nem administra usuários', () => {
+    expect(can('tech', 'proposal.edit_technical')).toBe(true);
+    expect(can('tech', 'proposal.see_internal')).toBe(true);
+    expect(can('tech', 'proposal.validate_technical')).toBe(true);
+    expect(can('tech', 'proposal.read_audit_full')).toBe(true);
+    expect(can('tech', 'proposal.edit_commercial')).toBe(false);
+    expect(can('tech', 'admin.manage_users')).toBe(false);
+  });
+
+  it('Admin administra usuários; os papéis operacionais nunca (§6.1 última linha)', () => {
+    expect(can('admin', 'admin.manage_users')).toBe(true);
+    expect(can('business', 'admin.manage_users')).toBe(false);
+    expect(can('tech', 'admin.manage_users')).toBe(false);
+  });
+
+  it('canSeeInternal reflete a linha Negócios×P&T', () => {
+    expect(canSeeInternal('business')).toBe(false);
+    expect(canSeeInternal('tech')).toBe(true);
+    expect(canSeeInternal(undefined)).toBe(false);
+  });
+
+  it('isRole valida', () => {
+    expect(isRole('business')).toBe(true);
+    expect(isRole('tech')).toBe(true);
+    expect(isRole('admin')).toBe(true);
+    expect(isRole('root')).toBe(false);
+    expect(isRole(1)).toBe(false);
+  });
+});
