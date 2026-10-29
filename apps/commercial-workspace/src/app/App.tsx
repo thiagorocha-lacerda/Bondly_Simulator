@@ -17,6 +17,9 @@ import { ArkaPanel } from '../components/ArkaPanel';
 import { ScenarioPanel } from '../components/ScenarioPanel';
 import { TierDiscountPanel } from '../components/TierDiscountPanel';
 import { SetupPanel } from '../components/SetupPanel';
+import { ProfileGate } from '../components/ProfileGate';
+import { WorkflowStepper } from '../components/WorkflowStepper';
+import { useProposals } from '../hooks/useProposals';
 import { UserMenu } from '../components/UserMenu';
 
 type Mode = 'quick' | 'advanced';
@@ -36,7 +39,10 @@ export function App() {
   const [theme, setTheme] = useTheme();
   const b2c = useB2c();
   const { audience, internal, setAudience } = useAudience();
-  const { user } = useSession();
+  const { user, loading, unlock } = useSession();
+  const role = user?.role ?? null;
+  // A esteira só opera com papel desbloqueado; o hook fica ocioso sem papel ou sem BFF.
+  const proposals = useProposals(role !== null);
   const [mode, setMode] = useState<Mode>('quick');
   const [preview, setPreview] = useState(false);
   const [modules, setModulesState] = useState<ModuleId[]>(loadModules);
@@ -90,9 +96,22 @@ export function App() {
     return () => window.clearTimeout(id);
   }, [input, b2c.raw, b2c.enabled, b2c.include, modules]);
 
-  // Visão comercial é inerentemente um resumo para o cliente → sempre modo rápido.
-  // O modo avançado (drivers internos de pricing) só faz sentido em visão interna.
-  const effectiveMode: Mode = internal ? mode : 'quick';
+  // Papel business nunca fica em visão interna (§6.2). Aplica assim que o papel é conhecido.
+  useEffect(() => {
+    if (role === 'business' && audience === 'internal') setAudience('external');
+  }, [role, audience, setAudience]);
+
+  // 2º fator (§7.2): havendo sessão Google SEM papel, exige o código de perfil antes de qualquer
+  // conteúdo. Em dev sem BFF (user=null) não bloqueia — o simulador segue utilizável.
+  if (user && role === null && !loading) {
+    return <ProfileGate email={user.email} onUnlock={unlock} />;
+  }
+
+  // Papel business só enxerga a visão comercial (§6.2): custos/margens ficam fora por construção.
+  // A fronteira REAL é o servidor (APIs filtradas por papel); aqui alinhamos a UI ao papel.
+  const forcedExternal = role === 'business';
+  const showInternal = internal && !forcedExternal;
+  const effectiveMode: Mode = showInternal ? mode : 'quick';
 
   return (
     <div className="wrap">
@@ -113,7 +132,7 @@ export function App() {
       </header>
 
       <div className="stepper">
-        {internal && (
+        {showInternal && (
           <div className="modetabs" role="tablist" aria-label="Modo de configuração">
             <button type="button" role="tab" aria-selected={mode === 'quick'} aria-current={mode === 'quick' ? 'step' : undefined} onClick={() => setMode('quick')}>
               Modo rápido
@@ -123,10 +142,10 @@ export function App() {
             </button>
           </div>
         )}
-        {internal && <span style={{ flex: 1 }} />}
+        {showInternal && <span style={{ flex: 1 }} />}
         <div className="audienceswitch" role="group" aria-label="Visão (o que aparece na tela)">
           <span className="switchlabel" title="A visão comercial oculta custos, margens e dados internos — segura para mostrar ao cliente.">Visão:</span>
-          <button type="button" aria-pressed={audience === 'internal'} onClick={() => setAudience('internal')}>
+          <button type="button" aria-pressed={audience === 'internal'} disabled={forcedExternal} title={forcedExternal ? 'Perfil Negócios: visão comercial apenas.' : undefined} onClick={() => setAudience('internal')}>
             Interna
           </button>
           <button type="button" aria-pressed={audience === 'external'} title="Oculta custos, margens, ARKA e resultado B2C/Minu — segura para o cliente." onClick={() => setAudience('external')}>
@@ -152,7 +171,7 @@ export function App() {
           ) : (
             <>
               <AdvancedMode input={input} update={update} selectedModules={modules} onModules={setModules} />
-              {internal && (
+              {showInternal && (
                 <>
                   <div style={{ height: 16 }} />
                   <ServicesPanel input={input} update={update} />
@@ -169,7 +188,7 @@ export function App() {
 
           {/* Setup redesenhado (§4) — fixo configurável + horas + outros, visível em ambos os modos. */}
           <div style={{ height: 16 }} />
-          <SetupPanel input={input} result={result} update={update} internal={internal} />
+          <SetupPanel input={input} result={result} update={update} internal={showInternal} />
 
           {/* Módulo de vendas Assinaturas B2C — habilitável em AMBOS os modos. */}
           <div style={{ height: 16 }} />
@@ -201,7 +220,8 @@ export function App() {
             </span>
           </div>
           <ResultsDashboard result={result} users={input.volume.users} />
-          {internal && <ArkaPanel input={input} />}
+          {showInternal && <ArkaPanel input={input} />}
+          {role && <WorkflowStepper role={role} proposals={proposals} />}
           <ScenarioPanel input={input} />
         </div>
       </div>

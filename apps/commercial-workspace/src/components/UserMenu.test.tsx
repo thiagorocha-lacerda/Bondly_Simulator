@@ -9,7 +9,7 @@ describe('UserMenu (§6)', () => {
   });
 
   it('mostra nome, e-mail e botão Sair com usuário autenticado', () => {
-    render(<UserMenu user={{ email: 'ana@minu.co', name: 'Ana Souza', picture: null, domain: 'minu.co' }} />);
+    render(<UserMenu user={{ email: 'ana@minu.co', name: 'Ana Souza', picture: null, domain: 'minu.co', role: null }} />);
     expect(screen.getByText('Ana Souza')).toBeInTheDocument();
     expect(screen.getByText('ana@minu.co')).toBeInTheDocument();
     const sair = screen.getByText('Sair');
@@ -17,7 +17,7 @@ describe('UserMenu (§6)', () => {
   });
 
   it('usa a inicial como fallback quando não há foto', () => {
-    render(<UserMenu user={{ email: 'bruno@coremidia.co', name: null, picture: null, domain: 'coremidia.co' }} />);
+    render(<UserMenu user={{ email: 'bruno@coremidia.co', name: null, picture: null, domain: 'coremidia.co', role: null }} />);
     expect(screen.getByText('B')).toBeInTheDocument(); // inicial do e-mail
   });
 });

@@ -11,38 +11,64 @@ export interface SessionUser {
   readonly name: string | null;
   readonly picture: string | null;
   readonly domain: string;
+  /** Papel elevado pelo 2º fator (§7.2); null = Google ok mas sem perfil desbloqueado. */
+  readonly role: 'business' | 'tech' | 'admin' | null;
 }
 
-export function useSession(): { user: SessionUser | null; loading: boolean } {
+export interface UseSession {
+  readonly user: SessionUser | null;
+  readonly loading: boolean;
+  /** Desbloqueia um papel com o código (§7.2). Retorna true em sucesso e atualiza o user. */
+  unlock: (role: 'business' | 'tech' | 'admin', code: string) => Promise<boolean>;
+}
+
+export function useSession(): UseSession {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function refetch(): Promise<void> {
+    try {
+      const r = await fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } });
+      if (!r.ok) {
+        setUser(null);
+        return;
+      }
+      const ct = r.headers.get('content-type') ?? '';
+      if (!ct.includes('application/json')) {
+        setUser(null);
+        return;
+      }
+      setUser((await r.json()) as SessionUser);
+    } catch {
+      setUser(null);
+    }
+  }
+
   useEffect(() => {
     let alive = true;
-    fetch('/api/me', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
-      .then(async (r) => {
-        if (!alive) return;
-        if (!r.ok) {
-          setUser(null);
-          return;
-        }
-        const ct = r.headers.get('content-type') ?? '';
-        if (!ct.includes('application/json')) {
-          setUser(null);
-          return;
-        }
-        setUser((await r.json()) as SessionUser);
-      })
-      .catch(() => {
-        if (alive) setUser(null);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
-      });
+    refetch().finally(() => {
+      if (alive) setLoading(false);
+    });
     return () => {
       alive = false;
     };
   }, []);
 
-  return { user, loading };
+  const unlock = async (role: 'business' | 'tech' | 'admin', code: string): Promise<boolean> => {
+    try {
+      const r = await fetch('/api/profile/unlock', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({ role, code }),
+      });
+      if (!r.ok) return false;
+      await refetch();
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  return { user, loading, unlock };
 }
