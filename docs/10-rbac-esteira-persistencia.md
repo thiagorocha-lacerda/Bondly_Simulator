@@ -140,11 +140,16 @@ aprovações auditáveis e invalidadas por mudança relevante; Render preservado
 
 ### Gerar um hash de código (nunca commitar o código em texto puro)
 ```bash
-# após build do auth-proxy:
+# Opção A — script standalone (não exige build prévio); replica o scryptHasher do servidor:
+node scripts/gen-profile-hash.mjs 'O-CODIGO-REAL'
+
+# Opção B — a partir do módulo buildado do auth-proxy:
 node --input-type=module -e "import('./apps/auth-proxy/dist/profileCodes.js').then(m=>console.log(m.scryptHasher.hash(process.argv[1])))" 'O-CODIGO-REAL'
 ```
-Cole o hash resultante na env var correspondente no painel da Render. Um papel SEM hash configurado
-fica inatingível pelo 2º fator (deny-by-default).
+Ambas produzem o formato `scrypt$N$r$p$salt$derived` que o `verifyProfileCode` do servidor aceita.
+Cole o hash resultante na env var correspondente (`PROFILE_CODE_HASH_BUSINESS` / `_TECH` / `_ADMIN`)
+no painel da Render. Um papel SEM hash configurado fica inatingível pelo 2º fator (deny-by-default).
+Gere um código por papel — o código de um papel **não** desbloqueia outro.
 
 ### Disk e backup
 O `render.yaml` monta um **Disk** de 1 GB em `/var/data` (`DATA_DIR`). É **single-instance** (o Disk
