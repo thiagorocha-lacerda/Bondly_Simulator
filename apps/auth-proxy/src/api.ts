@@ -19,6 +19,7 @@ import {
   formatProposalId,
 } from './domain.js';
 import { projectProposal, projectAudit } from './projection.js';
+import { canTransition, invalidationOnEdit, isMaterialChange } from './workflow.js';
 
 export interface ApiResult {
   readonly status: number;
@@ -108,7 +109,7 @@ export async function handleApi(args: {
   }
 
   // --- rotas com :id ---
-  const m = path.match(/^\/api\/proposals\/([A-Za-z0-9-]+)(\/(commercial|technical|audit))?$/);
+  const m = path.match(/^\/api\/proposals\/([A-Za-z0-9-]+)(\/(commercial|technical|audit|transition))?$/);
   if (m) {
     const id = m[1]!;
     const sub = m[3];
@@ -131,14 +132,25 @@ export async function handleApi(args: {
       const b = (body ?? {}) as { version?: unknown; commercial?: CommercialInput };
       const v = num(b.version);
       if (v === null) return json(400, { error: 'version_required' });
+      const current = await repo.get(id);
+      if (!current) return json(404, { error: 'not_found' });
+      const nextCommercial = b.commercial ?? {};
+      // §5.2: mudança material pós-aprovação invalida a aprovação e retorna à etapa apropriada.
+      const material = isMaterialChange('commercial', current.commercial, nextCommercial);
+      const invalidateTo = material ? invalidationOnEdit(current.status, 'commercial') : null;
       try {
         const p = await repo.update(
           id,
           v,
-          { commercial: b.commercial ?? {} },
-          { actorEmail: session.email, role, action: 'proposal.edit_commercial' },
+          { commercial: nextCommercial, ...(invalidateTo ? { status: invalidateTo } : {}) },
+          {
+            actorEmail: session.email,
+            role,
+            action: 'proposal.edit_commercial',
+            ...(invalidateTo ? { fromState: current.status, toState: invalidateTo, note: 'aprovação invalidada por mudança material comercial' } : {}),
+          },
         );
-        return json(200, { proposal: projectProposal(p, role) });
+        return json(200, { proposal: projectProposal(p, role), invalidated: invalidateTo !== null });
       } catch (e) {
         return mapRepoError(e);
       }
@@ -149,12 +161,54 @@ export async function handleApi(args: {
       const b = (body ?? {}) as { version?: unknown; technical?: TechnicalInput };
       const v = num(b.version);
       if (v === null) return json(400, { error: 'version_required' });
+      const current = await repo.get(id);
+      if (!current) return json(404, { error: 'not_found' });
+      const nextTechnical = b.technical ?? {};
+      const material = isMaterialChange(
+        'technical',
+        current.technical as Record<string, unknown> | undefined,
+        nextTechnical as Record<string, unknown>,
+      );
+      const invalidateTo = material ? invalidationOnEdit(current.status, 'technical') : null;
       try {
         const p = await repo.update(
           id,
           v,
-          { technical: b.technical ?? {} },
-          { actorEmail: session.email, role, action: 'proposal.edit_technical' },
+          { technical: nextTechnical, ...(invalidateTo ? { status: invalidateTo } : {}) },
+          {
+            actorEmail: session.email,
+            role,
+            action: 'proposal.edit_technical',
+            ...(invalidateTo ? { fromState: current.status, toState: invalidateTo, note: 'aprovação invalidada por mudança material técnica' } : {}),
+          },
+        );
+        return json(200, { proposal: projectProposal(p, role), invalidated: invalidateTo !== null });
+      } catch (e) {
+        return mapRepoError(e);
+      }
+    }
+
+    if (sub === 'transition' && method === 'POST') {
+      const b = (body ?? {}) as { version?: unknown; transition?: unknown; note?: unknown };
+      const v = num(b.version);
+      if (v === null) return json(400, { error: 'version_required' });
+      const current = await repo.get(id);
+      if (!current) return json(404, { error: 'not_found' });
+      const name = typeof b.transition === 'string' ? b.transition : '';
+      const decision = canTransition(current.status, name, role);
+      if (!decision.ok) {
+        // emissão exige a ação proposal.emit além da transição (dupla checagem de alçada)
+        return json(decision.reason === 'wrong_role' ? 403 : 409, { error: `transition_${decision.reason}` });
+      }
+      // a emissão também é gated pela ação RBAC proposal.emit (§6.1)
+      if (decision.to === 'emitido' && !can(role, 'proposal.emit')) return json(403, { error: 'forbidden' });
+      const note = typeof b.note === 'string' ? b.note : undefined;
+      try {
+        const p = await repo.update(
+          id,
+          v,
+          { status: decision.to },
+          { actorEmail: session.email, role, action: `transition.${name}`, fromState: current.status, toState: decision.to, ...(note ? { note } : {}) },
         );
         return json(200, { proposal: projectProposal(p, role) });
       } catch (e) {
