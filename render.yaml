@@ -42,3 +42,19 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
+      # Persistência (Fase 3): DATA_DIR vive no Disk montado abaixo; SQLite grava DATA_DIR/bondly.db.
+      - key: DATA_DIR
+        value: /var/data
+      # Códigos de perfil (2º fator §7.2) — HASHES scrypt gerados com scryptHasher.hash, NUNCA o código
+      # em texto puro. Opcionais: um papel sem hash fica inatingível. Configurar no painel.
+      - key: PROFILE_CODE_HASH_BUSINESS
+        sync: false
+      - key: PROFILE_CODE_HASH_TECH
+        sync: false
+      - key: PROFILE_CODE_HASH_ADMIN
+        sync: false
+    # Disco persistente para o SQLite (propostas/esteira/auditoria). Single-instance.
+    disk:
+      name: bondly-data
+      mountPath: /var/data
+      sizeGB: 1

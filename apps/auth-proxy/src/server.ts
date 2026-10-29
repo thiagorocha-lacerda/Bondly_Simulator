@@ -30,10 +30,10 @@ import { newAuthRequestState, buildAuthUrl, exchangeCode } from './oauth.js';
 import { authorizeIdentity } from './authz.js';
 import { renderLoginPage } from './login-page.js';
 import { handleApi } from './api.js';
-import { createMemoryRepository } from './memoryRepository.js';
+import { createRepository } from './sqliteRepository.js';
 
 const cfg = loadConfig();
-const repo = createMemoryRepository();
+const { repo, backend: repoBackend } = await createRepository();
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -232,5 +232,5 @@ const server = createServer((req, res) => {
 });
 
 server.listen(cfg.port, () => {
-  console.info(JSON.stringify({ evt: 'listening', port: cfg.port, prod: cfg.isProd, publicUrl: cfg.publicUrl }));
+  console.info(JSON.stringify({ evt: 'listening', port: cfg.port, prod: cfg.isProd, publicUrl: cfg.publicUrl, repo: repoBackend }));
 });

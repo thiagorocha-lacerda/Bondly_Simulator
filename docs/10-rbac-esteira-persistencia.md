@@ -18,9 +18,12 @@ Repositório com **interface única** (`ProposalRepository`, `AuditRepository`),
 sem tocar as rotas. Na Render exige um **Disk** (persistente) montado; o caminho vem de `DATA_DIR`
 (default `./data` em dev). Em teste, implementação **in-memory** do mesmo contrato.
 
-> Trade-off honesto: `node:sqlite` é experimental no Node 22 (emite `ExperimentalWarning`). A interface
-> isola esse risco — se incomodar, troca-se por `better-sqlite3` ou Postgres implementando o mesmo
-> contrato, sem mudar o restante.
+> **Status: IMPLEMENTADO.** `sqliteRepository.ts` grava `DATA_DIR/bondly.db` (WAL), com lock otimista
+> no próprio SQL e auditoria append-only. `createRepository(env)` escolhe o backend: **SQLite quando
+> `DATA_DIR` está setado**, senão **in-memory** (dev/teste). O `render.yaml` monta um Disk de 1 GB em
+> `/var/data` e aponta `DATA_DIR=/var/data`. `node:sqlite` é carregado via `createRequire` para
+> escapar da transformação do bundler; é experimental no Node 22 (emite ExperimentalWarning). Trocar
+> por `better-sqlite3`/Postgres é reimplementar `ProposalRepository`, sem tocar `api.ts`/`server.ts`.
 
 ### 1.2 Hash dos códigos de perfil — scrypt nativo (§7.3)
 O §7.3 pede **Argon2id**. Para não adicionar dependência nativa (build toolchain na Render) usamos
@@ -124,7 +127,32 @@ Permissões restringem **dados e ações no servidor** (não só visual); Google
 códigos validados com segurança sem substituir identidade; nada confidencial antes de autorização;
 aprovações auditáveis e invalidadas por mudança relevante; Render preservado (Web Service + Disk).
 
-## 7. O que permanece PENDENTE (não inventado)
+## 7. Operação (Render) — configuração real
+
+### Variáveis de ambiente (painel Render → Environment)
+| Var | Papel |
+|---|---|
+| `DATA_DIR` | `/var/data` — raiz do SQLite no Disk persistente (já no `render.yaml`) |
+| `PROFILE_CODE_HASH_BUSINESS` | hash scrypt do código de Negócios (secret, `sync:false`) |
+| `PROFILE_CODE_HASH_TECH` | hash scrypt do código de P&T (secret, `sync:false`) |
+| `PROFILE_CODE_HASH_ADMIN` | hash scrypt do código de admin (opcional) |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` / `SESSION_SECRET` / `PUBLIC_URL` | como na Fase anterior |
+
+### Gerar um hash de código (nunca commitar o código em texto puro)
+```bash
+# após build do auth-proxy:
+node --input-type=module -e "import('./apps/auth-proxy/dist/profileCodes.js').then(m=>console.log(m.scryptHasher.hash(process.argv[1])))" 'O-CODIGO-REAL'
+```
+Cole o hash resultante na env var correspondente no painel da Render. Um papel SEM hash configurado
+fica inatingível pelo 2º fator (deny-by-default).
+
+### Disk e backup
+O `render.yaml` monta um **Disk** de 1 GB em `/var/data` (`DATA_DIR`). É **single-instance** (o Disk
+não é compartilhado entre réplicas) — adequado ao volume de propostas de uma equipe comercial. Backup:
+snapshot do Disk pela Render, ou cópia de `bondly.db` via `VACUUM INTO`. Migração para Postgres:
+implementar `ProposalRepository` sobre o driver pg e trocar o factory `createRepository`.
+
+## 8. O que permanece PENDENTE (não inventado)
 
 - Valores/algoritmo final do hash (Argon2id vs scrypt) — sign-off de segurança.
 - Os **códigos de perfil** reais (definidos pelo admin, nunca no repositório/bundle).
