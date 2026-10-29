@@ -29,8 +29,11 @@ import {
 import { newAuthRequestState, buildAuthUrl, exchangeCode } from './oauth.js';
 import { authorizeIdentity } from './authz.js';
 import { renderLoginPage } from './login-page.js';
+import { handleApi } from './api.js';
+import { createMemoryRepository } from './memoryRepository.js';
 
 const cfg = loadConfig();
+const repo = createMemoryRepository();
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -65,6 +68,27 @@ function send(res: ServerResponse, status: number, body: string, contentType = '
   if (cookies.length) res.setHeader('Set-Cookie', cookies);
   res.writeHead(status, { 'Content-Type': contentType });
   res.end(body);
+}
+
+/** Lê e parseia o corpo JSON da requisição (bounded a 256 KB). Retorna null em corpo vazio/ inválido. */
+async function readJsonBody(req: IncomingMessage): Promise<unknown> {
+  const method = req.method ?? 'GET';
+  if (method === 'GET' || method === 'HEAD') return null;
+  const MAX = 256 * 1024;
+  const chunks: Buffer[] = [];
+  let size = 0;
+  for await (const chunk of req) {
+    const buf = chunk as Buffer;
+    size += buf.length;
+    if (size > MAX) throw new Error('corpo da requisição excede o limite');
+    chunks.push(buf);
+  }
+  if (!chunks.length) return null;
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+  } catch {
+    return null;
+  }
 }
 
 async function serveStatic(res: ServerResponse, urlPath: string): Promise<void> {
@@ -183,14 +207,17 @@ async function handle(req: IncomingMessage, res: ServerResponse): Promise<void> 
     return redirect(res, `/login?returnTo=${returnTo}`);
   }
 
-  // sessão válida — expõe a identidade ao frontend (sem segredos) e serve o SPA
-  if (path === '/api/me') {
-    send(
-      res,
-      200,
-      JSON.stringify({ email: session.email, name: session.name ?? null, picture: session.picture ?? null, domain: session.domain }),
-      'application/json; charset=utf-8',
-    );
+  // --- API /api/* (RBAC + payloads filtrados por papel), delegada ao handler puro ---
+  if (path.startsWith('/api/')) {
+    const body = await readJsonBody(req);
+    const result = await handleApi({ method: req.method ?? 'GET', path, session, body, repo, cfg });
+    const cookies: string[] = [];
+    if (result.session) {
+      // ex.: /api/profile/unlock elevou o papel → reemite o cookie de sessão assinado
+      cookies.push(sessionSetCookie(createSessionToken(result.session, cfg.sessionSecret), cfg.isProd));
+    }
+    const payload = result.body === undefined ? '' : JSON.stringify(result.body);
+    send(res, result.status, payload, 'application/json; charset=utf-8', cookies);
     return;
   }
 

@@ -3,6 +3,9 @@
  * obrigatório em produção, o processo recusa subir (fail-fast) em vez de rodar inseguro.
  */
 
+import type { ProfileCodeHashes } from './profileCodes.js';
+import { loadProfileCodeHashes } from './profileCodes.js';
+
 export interface ServerConfig {
   readonly port: number;
   readonly isProd: boolean;
@@ -13,6 +16,8 @@ export interface ServerConfig {
   readonly publicUrl: string;
   /** Diretório com o dist do SPA a servir. */
   readonly staticDir: string;
+  /** Hashes dos códigos de perfil (2º fator §7.2); vazio = papel inatingível por código. */
+  readonly profileCodeHashes: ProfileCodeHashes;
 }
 
 function required(name: string, value: string | undefined, isProd: boolean, devFallback?: string): string {
@@ -35,6 +40,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): ServerConfig {
     sessionSecret: required('SESSION_SECRET', env.SESSION_SECRET, isProd, 'dev-session-secret-not-for-production-use'),
     publicUrl,
     staticDir: env.STATIC_DIR ?? new URL('../../commercial-workspace/dist', import.meta.url).pathname,
+    profileCodeHashes: loadProfileCodeHashes(env),
   };
 }
 
