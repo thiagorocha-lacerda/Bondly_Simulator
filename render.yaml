@@ -17,7 +17,11 @@ services:
   - type: web
     name: bondly-simulator2
     runtime: node
-    plan: starter
+    # Plano Free (US$ 0): roda o backend Node completo (OAuth/RBAC/2º fator/APIs/esteira).
+    # Trade-offs do Free: dorme após ~15 min de inatividade (cold start ~30-50s) e NÃO persiste
+    # (sem Disk, o repositório cai para in-memory — propostas somem em cada redeploy/sleep).
+    # Para persistência real, voltar a plan: starter + o bloco disk + DATA_DIR=/var/data.
+    plan: free
     # Build do monorepo: compila o SPA (dist) e o servidor TypeScript (dist/server.js).
     buildCommand: npm ci && npm run build --workspace @bondly/pricing-engine && npm run build --workspace @bondly/commercial-workspace && npm run build --workspace @bondly/auth-proxy
     startCommand: npm run start --workspace @bondly/auth-proxy
@@ -42,9 +46,11 @@ services:
         sync: false
       - key: SESSION_SECRET
         generateValue: true
-      # Persistência (Fase 3): DATA_DIR vive no Disk montado abaixo; SQLite grava DATA_DIR/bondly.db.
-      - key: DATA_DIR
-        value: /var/data
+      # Persistência (Fase 3): DESATIVADA no plano Free (sem Disk) — o repositório usa in-memory,
+      # que NÃO sobrevive a redeploy/sleep. Para ligar SQLite persistente, re-adicione:
+      #   - key: DATA_DIR
+      #     value: /var/data
+      # e o bloco `disk:` no fim do serviço, e troque plan: free -> starter.
       # Códigos de perfil (2º fator §7.2) — HASHES scrypt gerados com scryptHasher.hash, NUNCA o código
       # em texto puro. Opcionais: um papel sem hash fica inatingível. Configurar no painel.
       - key: PROFILE_CODE_HASH_BUSINESS
@@ -53,8 +59,9 @@ services:
         sync: false
       - key: PROFILE_CODE_HASH_ADMIN
         sync: false
-    # Disco persistente para o SQLite (propostas/esteira/auditoria). Single-instance.
-    disk:
-      name: bondly-data
-      mountPath: /var/data
-      sizeGB: 1
+    # Sem `disk:` — plano Free não suporta Disk e o repositório roda in-memory.
+    # Persistência real = voltar a plan: starter, re-adicionar DATA_DIR e o bloco disk abaixo:
+    #   disk:
+    #     name: bondly-data
+    #     mountPath: /var/data
+    #     sizeGB: 1
