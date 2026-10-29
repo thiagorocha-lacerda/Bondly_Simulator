@@ -62,6 +62,13 @@ export interface ComplexityParameters {
 export interface NegotiationParameters {
   readonly option: CommercialOption;
   readonly extraDiscount: number; // fração [0,1] sobre o PF
+  /**
+   * Desconto POR TIER (§3.1), fração [0,1]. Editável 3%–7% (limites em premises.tierDiscountLimits).
+   * 0 ou ausente = sem desconto por tier. Incide só sobre o Platform Fee, antes do desconto
+   * negociado e do desconto por prazo. A UI valida com validateTierDiscountPct; o engine reaplica
+   * o limite (clamp) como fronteira do contrato público.
+   */
+  readonly tierDiscount?: number;
   readonly term: ContractMonths;
   readonly viaMinu: boolean;
   readonly expansion: boolean; // potencial de expansão alto
@@ -158,6 +165,21 @@ export interface PricingWarning {
   readonly severity: 'info' | 'warn' | 'error';
 }
 
+/**
+ * Waterfall comercial do Platform Fee (§3.2.4): base escolhida → desconto por tier → desconto
+ * negociado → desconto por prazo → final. Cada degrau carrega a fração aplicada e o valor após ele,
+ * para a UI e o PDF mostrarem a composição sem recalcular.
+ */
+export interface DiscountWaterfall {
+  readonly base: number; // Platform Fee escolhido (antes de qualquer desconto)
+  readonly tierDiscountRate: number; // fração
+  readonly afterTierDiscount: number;
+  readonly commercialDiscountRate: number; // "extraDiscount" (desconto negociado)
+  readonly afterCommercialDiscount: number;
+  readonly termDiscountRate: number; // fração
+  readonly final: number; // Platform Fee final
+}
+
 /** Resultado completo do Pricing Engine. */
 export interface PricingResult {
   readonly engineVersion: string;
@@ -194,6 +216,11 @@ export interface PricingResult {
   readonly discountAuthority: string;
   readonly maxDiscount: number;
   readonly termDiscount: number;
+  /** Desconto por tier aplicado (§3.1), fração [0,1]; 0 = não aplicado. */
+  readonly tierDiscount: number;
+  readonly tierDiscountApplied: boolean;
+  /** Waterfall do Platform Fee para transparência na UI/PDF (§3.2.4 / §9). */
+  readonly discountWaterfall: DiscountWaterfall;
 
   readonly tcvClient: number;
   readonly tcvBondly: number;

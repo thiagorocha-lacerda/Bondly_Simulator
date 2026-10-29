@@ -19,15 +19,27 @@ export interface PlatformFeeResolution {
   readonly premium: number;
   readonly chosen: number; // antes de descontos
   readonly optionMultiplier: number;
-  readonly final: number; // após desconto negociado e por prazo
+  readonly tierDiscount: number; // fração do desconto por tier aplicada (§3.1)
+  readonly afterTierDiscount: number; // chosen × (1 − tierDiscount)
+  readonly final: number; // após desconto por tier, negociado e por prazo
 }
 
 /**
- * Resolve o Platform Fee para as três opções comerciais e aplica descontos (R-013/R-014/R-016).
+ * Resolve o Platform Fee para as três opções comerciais e aplica descontos (R-013/R-014/R-016 + §3).
  * - pfPiso  = max(tabela×0.9, piso econômico pela margem floor)
  * - pfRec   = max(pfPiso, tabela×(1+markup))
  * - pfPrem  = max(pfRec, tabela×(1+markupPremium))
- * - final   = escolhido × (1−descontoNegociado) × (1−descontoPrazo)
+ *
+ * WATERFALL comercial (§3.2.4) — descontos SEQUENCIAIS sobre a base elegível (o Capacity/Platform
+ * Fee), sem incidência dupla ou ambígua e nesta ordem:
+ *   escolhido → ×(1−descontoPorTier) → ×(1−descontoNegociado) → ×(1−descontoPrazo) = final
+ *
+ * O desconto por tier incide EXCLUSIVAMENTE sobre o Platform Fee; usage, processing, Setup e
+ * serviços não recebem o desconto do tier (§3.2.5). `tierDiscount` default 0 preserva o cálculo
+ * legado bit-a-bit quando não há desconto por tier (paridade §22).
+ *
+ * Observação (§3.2.3): a ORDEM e a cumulatividade aqui são uma política proposta — marcada como
+ * pendente de aprovação comercial no premise `tierDiscountLimits` (status 'pendente') e na doc.
  */
 export function resolvePlatformFee(args: {
   table: number;
@@ -36,17 +48,20 @@ export function resolvePlatformFee(args: {
   option: CommercialOption;
   extraDiscount: number;
   termDiscount: number;
+  tierDiscount?: number; // fração [0, max] já resolvida/validada; default 0
 }): PlatformFeeResolution {
   const { table, floorEconomic, complexity, option, extraDiscount, termDiscount } = args;
+  const tierDiscount = Math.max(0, args.tierDiscount ?? 0);
   const floor = Math.max(table * 0.9, floorEconomic);
   const recommended = Math.max(floor, table * (1 + complexity.band.markup));
   const premium = Math.max(recommended, table * (1 + complexity.band.markupPremium));
 
   const chosen = option === 'floor' ? floor : option === 'recommended' ? recommended : premium;
   const optionMultiplier = table ? chosen / table : 1;
-  const final = chosen * (1 - extraDiscount) * (1 - termDiscount);
+  const afterTierDiscount = chosen * (1 - tierDiscount);
+  const final = afterTierDiscount * (1 - extraDiscount) * (1 - termDiscount);
 
-  return { table, floor, recommended, premium, chosen, optionMultiplier, final };
+  return { table, floor, recommended, premium, chosen, optionMultiplier, tierDiscount, afterTierDiscount, final };
 }
 
 /** Piso econômico do PF dado um alvo de margem (R-013 usa floor; reusado para o alvo). */

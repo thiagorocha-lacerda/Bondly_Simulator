@@ -28,6 +28,16 @@ export interface CommunicationTariffs {
   readonly email: number;
 }
 
+/**
+ * Limites do desconto por tier editável (prompt §3.1): fração mínima e máxima aceitas por tier.
+ * Os limites vivem AQUI (fonte única), não na UI — a validação do formulário e a do engine leem
+ * o mesmo valor. 3,00%–7,00% inclusive por padrão.
+ */
+export interface TierDiscountLimits {
+  readonly min: number; // fração, ex.: 0.03
+  readonly max: number; // fração, ex.: 0.07
+}
+
 export interface TierDefinition {
   readonly name: string;
   readonly users: number;
@@ -86,6 +96,8 @@ export interface PremiseTable {
   readonly discountCorridorBase: Premise;
   readonly discountCorridorStrategicStep: Premise;
   readonly discountCorridorCap: Premise;
+  /** Desconto por tier editável (prompt §3.1): limites inclusivos por tier. */
+  readonly tierDiscountLimits: Premise<TierDiscountLimits>;
 
   // Campanha (R-040)
   readonly campaignMarkup: Premise;
@@ -150,6 +162,9 @@ const PREMISES_V15_BASE = {
   discountCorridorBase: p(0.1, 'fração'),
   discountCorridorStrategicStep: p(0.025, 'fração por gatilho'),
   discountCorridorCap: p(0.15, 'fração'),
+  // Limites do desconto por tier (§3.1). Faixa 3%–7% conforme o prompt; marcada PENDENTE porque
+  // a política de convivência (§3.2) ainda não foi formalmente aprovada — não é premissa validada.
+  tierDiscountLimits: p<TierDiscountLimits>({ min: 0.03, max: 0.07 }, 'fração por tier (inclusivo)', 'pendente'),
 
   campaignMarkup: p(0.2, 'fração sobre a mídia'),
 

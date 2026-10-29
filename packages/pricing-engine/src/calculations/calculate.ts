@@ -18,6 +18,7 @@ import {
 import { dauOf, mauOf, monthlyUsage, processing, tierFor } from '../pricing/usage.js';
 import { marginStatus, netMargin, technicalMargin } from '../margins/margins.js';
 import { discountAuthority } from '../validations/discountAuthority.js';
+import { resolveTierDiscount } from '../validations/tierDiscount.js';
 import { services as computeServices } from '../pricing/services.js';
 import { minuFees, setup as computeSetup } from '../pricing/setup.js';
 import { campaign as computeCampaign } from '../modules/campaign.js';
@@ -67,6 +68,8 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
   });
   const extraDiscount = Math.max(0, negotiation.extraDiscount);
   const tdisc = termDiscountFor(negotiation.term, premises);
+  // Desconto por tier (§3.1): resolvido contra os limites da tabela (clamp de fronteira do contrato).
+  const tierDisc = resolveTierDiscount(negotiation.tierDiscount, premises.tierDiscountLimits.value);
   const pf = resolvePlatformFee({
     table: pfTable,
     floorEconomic,
@@ -74,6 +77,7 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
     option: negotiation.option,
     extraDiscount,
     termDiscount: tdisc,
+    tierDiscount: tierDisc.fraction,
   });
 
   const core = pf.final + usage + proc;
@@ -189,6 +193,14 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
     warnings.push({ code: 'DISCOUNT_OUT_OF_CORRIDOR', message: auth.authority, severity: 'error' });
   if (sv.belowMin > 0)
     warnings.push({ code: 'SERVICE_BELOW_MIN', message: `${sv.belowMin} perfil(is) de serviço abaixo da margem mínima.`, severity: 'error' });
+  if (tierDisc.clamped) {
+    const lim = premises.tierDiscountLimits.value;
+    warnings.push({
+      code: 'TIER_DISCOUNT_CLAMPED',
+      message: `Desconto por tier ajustado para a faixa permitida (${(lim.min * 100).toFixed(2)}%–${(lim.max * 100).toFixed(2)}%).`,
+      severity: 'warn',
+    });
+  }
 
   return {
     engineVersion: ENGINE_VERSION,
@@ -217,6 +229,17 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
     discountAuthority: auth.authority,
     maxDiscount: auth.maxDiscount,
     termDiscount: tdisc,
+    tierDiscount: tierDisc.fraction,
+    tierDiscountApplied: tierDisc.applied,
+    discountWaterfall: {
+      base: pf.chosen,
+      tierDiscountRate: pf.tierDiscount,
+      afterTierDiscount: pf.afterTierDiscount,
+      commercialDiscountRate: extraDiscount,
+      afterCommercialDiscount: pf.afterTierDiscount * (1 - extraDiscount),
+      termDiscountRate: tdisc,
+      final: pf.final,
+    },
     tcvClient,
     tcvBondly,
     contractContribution,

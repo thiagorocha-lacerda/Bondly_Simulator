@@ -24,6 +24,7 @@ export type {
   TierDefinition,
   ComplexityBand,
   CommunicationTariffs,
+  TierDiscountLimits,
 } from './premises/premises.js';
 
 // Orquestrador
@@ -50,6 +51,12 @@ export { technicalMargin, marginStatus, netMargin } from './margins/margins.js';
 // Validações
 export { discountAuthority } from './validations/discountAuthority.js';
 export type { DiscountAuthorityResult } from './validations/discountAuthority.js';
+export {
+  validateTierDiscountPct,
+  resolveTierDiscount,
+  TIER_DISCOUNT_DECIMALS,
+} from './validations/tierDiscount.js';
+export type { TierDiscountValidation, ResolvedTierDiscount } from './validations/tierDiscount.js';
 
 // Módulos
 export {

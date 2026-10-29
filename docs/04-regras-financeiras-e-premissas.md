@@ -24,6 +24,7 @@ Cada premissa carrega **valor, unidade, fonte, data de referência e status**. V
 | Margem alvo / piso | 70% / 60% | fração | validada |
 | Descontos por prazo | 12→0 · 24→5% · 36→10% | fração sobre PF | validada |
 | Corredor de desconto | base 10% · +2,5pp por gatilho · teto 15% | fração | validada |
+| **Desconto por tier (editável)** | **3,00%–7,00%** (inclusivo) | fração por tier sobre o PF | **pendente** |
 | Markup de campanha | 20% | fração sobre a mídia | validada |
 | B2C — fee/mínimo/split | 10% (oficial) · R$2,00 · 50% Minu | — | validada |
 
@@ -52,6 +53,28 @@ produtivas (160) quando não informado. Horas entram **só no Setup**, nunca na 
 ### Prazos (§7.4 — R-015)
 12/24/36 meses → desconto 0/5/10% **só sobre o Platform Fee**. Não incide em Usage, Processing, Setup,
 serviços, comunicação nem campanhas.
+
+### Desconto por tier editável (§3 — Fase 1) — **política PENDENTE de aprovação comercial**
+Nova entrada `negotiation.tierDiscount` (fração). Editável por tier dentro de **3,00%–7,00% inclusivo**
+(limites em `premises.tierDiscountLimits`, status `pendente`). Fonte única: engine e UI leem o mesmo
+limite via `validateTierDiscountPct`.
+
+- **Base elegível:** incide **exclusivamente sobre o Platform Fee (Capacity Fee)** do tier ativo
+  (§3.2.5). Não toca Usage, Processing, Setup, serviços, comunicação, campanha ou B2C.
+- **Ordem de aplicação (waterfall §3.2.4):** `PF escolhido → ×(1−descontoPorTier) → ×(1−descontoNegociado)
+  → ×(1−descontoPrazo) = PF final`. Descontos **sequenciais sobre a base corrente** — não se somam
+  linearmente (5%+5%+5% ≠ 15%), evitando incidência dupla/ambígua.
+- **Cumulatividade:** convive com o desconto negociado (corredor/alçada R-017) e o desconto por prazo
+  (R-015) **sem** substituí-los. A alçada de aprovação do desconto negociado permanece inalterada.
+- **Validação dupla (§3.1):** formulário (inline) **e** engine (`resolveTierDiscount` faz clamp de
+  fronteira do contrato público §21). Rejeita `NaN`, negativo, string inválida, fora da faixa e mais de
+  duas casas decimais. `0`/ausente = sem desconto por tier (não aplicado).
+- **Snapshot (§3.2.8):** o valor por tier é salvo em `negotiation.tierDiscount` e congelado no snapshot
+  da proposta; `reopenProposal` reproduz o cálculo histórico mesmo que a tabela global mude.
+- **Tributação:** o imposto de 11,7% incide sobre o Core **já com o PF descontado** — sem dupla incidência.
+- **Status:** a ORDEM e a cumulatividade acima são a política **proposta** por esta implementação. Até a
+  validação comercial formal, o limite fica `pendente` (não é premissa aprovada) — conforme §3.2.3.
+
 
 ### Assinaturas B2C (§7.5 — R-060..R-063)
 Fee = `max(ticket×fee%, mínimo R$2)`. Gateway, antifraude (faixas Konduto progressivas/integral),
