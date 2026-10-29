@@ -73,6 +73,13 @@ export interface NegotiationParameters {
   readonly viaMinu: boolean;
   readonly expansion: boolean; // potencial de expansão alto
   readonly strategic: boolean; // cliente estratégico
+  /**
+   * Redução do Setup fixo padrão (§4.1), fração [0,1]. 0 = sem redução (valor atual). O novo valor
+   * fixo reduzido é DECISÃO COMERCIAL PENDENTE — o engine só expõe o parâmetro configurável.
+   */
+  readonly setupFixedReductionPct?: number;
+  /** Outros adicionais de Setup expressamente previstos (§4.1), em R$. Default 0. */
+  readonly setupOtherAdditions?: number;
 }
 
 /** Um perfil de recurso dedicado. */
@@ -180,6 +187,21 @@ export interface DiscountWaterfall {
   readonly final: number; // Platform Fee final
 }
 
+/**
+ * Decomposição do Setup (§4.1/§4.2): Setup fixo padrão + (horas × R$/HH) + outros adicionais.
+ * As horas de implantação entram UMA ÚNICA VEZ aqui, nunca na mensalidade/Capacity Fee (§4.1).
+ */
+export interface SetupBreakdown {
+  readonly fixed: number; // Setup fixo padrão (após opção comercial e redução configurável)
+  readonly fixedReductionPct: number; // fração de redução aplicada (0 = valor atual)
+  readonly implementationHours: number;
+  readonly hourlyRate: number; // R$/HH praticado (default R$ 350)
+  readonly implementationSubtotal: number; // horas × R$/HH
+  readonly otherAdditions: number; // outros adicionais de Setup
+  readonly net: number; // Setup total líquido Bondly
+  readonly client: number; // Setup total ao cliente (+ markup Minu se via)
+}
+
 /** Resultado completo do Pricing Engine. */
 export interface PricingResult {
   readonly engineVersion: string;
@@ -203,6 +225,7 @@ export interface PricingResult {
 
   readonly setupNet: number;
   readonly setupClient: number;
+  readonly setup: SetupBreakdown;
 
   readonly taxes: TaxBreakdown;
   readonly minuConversionFee: number;

@@ -47,6 +47,27 @@ senão o PMS arredondado; margem = `preço×net − TC − custos`. Avaliado por
 Hora de referência **R$ 350**, margem mínima **R$ 50/h**. Custo/h = teto de Total Comp ÷ horas
 produtivas (160) quando não informado. Horas entram **só no Setup**, nunca na mensalidade.
 
+### Setup redesenhado (§4 — Fase 2) — base fixa configurável + horas + outros
+**Setup total (net) = Setup fixo padrão + (Horas × R$ 350/HH) + outros adicionais de Setup.**
+
+- **Setup fixo padrão:** `tier.setup × banda.setupMultiplier`, ajustado pela opção comercial
+  (piso ×0,9 · recomendado ×1 · premium ×1,15) e por uma **redução configurável**
+  `negotiation.setupFixedReductionPct` (default 0). O novo valor fixo reduzido **não é inventado** —
+  é decisão comercial **pendente**; o default preserva o valor atual (paridade §22) e qualquer
+  redução dispara o aviso `SETUP_FIXED_REDUCTION_PENDING`.
+- **Horas de implantação:** `implementationHours × R$/HH` (R$ 350 por padrão, do `services`). Entram
+  **exclusivamente no Setup** (§4.1) — nunca na mensalidade, no Capacity Fee ou em custos recorrentes.
+  Efeito no TCV ocorre uma única vez, via Setup. Margem mínima de **R$ 50/HH** preservada
+  (`hourStatus`; abaixo dela → `SETUP_HOUR_BELOW_MIN_MARGIN`).
+- **Outros adicionais de Setup:** `negotiation.setupOtherAdditions` (default 0), somam ao net sem
+  tocar a mensalidade.
+- **Setup ao cliente:** `net × (via Minu ? 1 + markup : 1)`.
+- **Transparência (§4.2):** o resultado expõe `setup` = { fixed, fixedReductionPct, implementationHours,
+  hourlyRate, implementationSubtotal, otherAdditions, net, client } — a UI mostra cada componente,
+  a mensalidade sem horas e o TCV sem duplicidade.
+- **Status:** `setupFixedReductionPct` default 0 e `setupOtherAdditions` default 0 mantêm o cálculo
+  legado bit-a-bit. O valor fixo reduzido permanece **pendente de aprovação** até decisão comercial.
+
 ### Tributação Capacity Fee (§7.1)
 **11,7%** sobre a base tributável. Imposto = base × 0,117; líquido = base − imposto. Sem dupla tributação.
 

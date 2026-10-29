@@ -16,6 +16,7 @@ import { B2cPanel } from '../components/B2cPanel';
 import { ArkaPanel } from '../components/ArkaPanel';
 import { ScenarioPanel } from '../components/ScenarioPanel';
 import { TierDiscountPanel } from '../components/TierDiscountPanel';
+import { SetupPanel } from '../components/SetupPanel';
 import { UserMenu } from '../components/UserMenu';
 
 type Mode = 'quick' | 'advanced';
@@ -165,6 +166,10 @@ export function App() {
           {/* Descontos por tier (§3.1) — condição comercial, visível em ambos os modos. */}
           <div style={{ height: 16 }} />
           <TierDiscountPanel input={input} result={result} update={update} />
+
+          {/* Setup redesenhado (§4) — fixo configurável + horas + outros, visível em ambos os modos. */}
+          <div style={{ height: 16 }} />
+          <SetupPanel input={input} result={result} update={update} internal={internal} />
 
           {/* Módulo de vendas Assinaturas B2C — habilitável em AMBOS os modos. */}
           <div style={{ height: 16 }} />

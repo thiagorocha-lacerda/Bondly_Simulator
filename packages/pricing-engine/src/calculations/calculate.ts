@@ -104,6 +104,10 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
     implementationCost: sv.implementationCost,
     viaMinu: negotiation.viaMinu,
     setupMarkup: premises.setupMarkup.value,
+    implementationHours: complexity.implementationHours,
+    hourlyRate: sv.hourPrice,
+    otherAdditions: negotiation.setupOtherAdditions,
+    fixedReductionPct: negotiation.setupFixedReductionPct,
   });
 
   // Tributos e fees
@@ -201,6 +205,20 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
       severity: 'warn',
     });
   }
+  if (setupR.fixedReductionPct > 0) {
+    warnings.push({
+      code: 'SETUP_FIXED_REDUCTION_PENDING',
+      message: `Setup fixo reduzido em ${(setupR.fixedReductionPct * 100).toFixed(1)}% — valor pendente de aprovação comercial.`,
+      severity: 'warn',
+    });
+  }
+  if (complexity.implementationHours > 0 && sv.hourStatus === 'r') {
+    warnings.push({
+      code: 'SETUP_HOUR_BELOW_MIN_MARGIN',
+      message: `Hora de implantação abaixo da margem mínima de R$ ${premises.serviceHourMinMargin.value.toFixed(0)}/HH.`,
+      severity: 'error',
+    });
+  }
 
   return {
     engineVersion: ENGINE_VERSION,
@@ -219,6 +237,16 @@ export function calculate(input: PricingInput, premises: PremiseTable = CURRENT_
     servicesMrr,
     setupNet: setupR.net,
     setupClient: setupR.client,
+    setup: {
+      fixed: setupR.fixed,
+      fixedReductionPct: setupR.fixedReductionPct,
+      implementationHours: setupR.implementationHours,
+      hourlyRate: setupR.hourlyRate,
+      implementationSubtotal: setupR.implementationSubtotal,
+      otherAdditions: setupR.otherAdditions,
+      net: setupR.net,
+      client: setupR.client,
+    },
     taxes,
     minuConversionFee: mf.conversionFee,
     minuAccountFee: mf.accountFee,

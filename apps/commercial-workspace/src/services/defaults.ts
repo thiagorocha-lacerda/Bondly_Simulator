@@ -19,7 +19,7 @@ export const DEFAULT_INPUT: PricingInput = {
     migrationPoints: 0,
     implementationHours: 0,
   },
-  negotiation: { option: 'recommended', extraDiscount: 0, term: 12, viaMinu: true, expansion: false, strategic: false },
+  negotiation: { option: 'recommended', extraDiscount: 0, term: 12, viaMinu: true, expansion: false, strategic: false, tierDiscount: 0, setupFixedReductionPct: 0, setupOtherAdditions: 0 },
   services: {
     profiles: [],
     tablePrice: 35000,
