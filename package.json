@@ -12,6 +12,7 @@
     "test:engine": "npm run test --workspace @bondly/pricing-engine",
     "test:ui": "npm run test --workspace @bondly/commercial-workspace",
     "test:auth": "npm run test --workspace @bondly/auth-proxy",
+    "smoke:sla": "npm run build --workspace @bondly/pricing-engine && npm run build --workspace @bondly/auth-proxy && node scripts/smoke-sla.mjs",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "build": "npm run build --workspaces --if-present"
   },
