@@ -84,6 +84,30 @@ export interface CreateProposalArgs {
   readonly commercial: CommercialInput;
 }
 
+/**
+ * Registro de uma REUNIÃO TÉCNICA com o cliente (§6.3). Persistido por proposta; pode haver mais de
+ * uma. O `state` é o estado atual da máquina (meeting.ts no engine); `log` é o histórico append-only
+ * de transições com ata/decisões/anexos. Solicitar/agendar NÃO pausa o SLA (§6.4) — pausa é ação à parte.
+ */
+export interface MeetingLogEntry {
+  readonly at: number; // epoch-millis
+  readonly by: string;
+  readonly transition: string; // nome da transição (ou 'solicitada' na criação)
+  readonly toState: string;
+  readonly note?: string; // ata/decisão/justificativa de cancelamento
+}
+
+export interface MeetingRecord {
+  readonly id: string; // uuid da reunião
+  readonly proposalId: string;
+  readonly state: string; // MeetingState do engine
+  readonly objective: string; // §6.3: objetivo, tópicos a esclarecer
+  readonly scheduledFor?: string; // data/hora sugerida/agendada (ISO), opcional
+  readonly log: readonly MeetingLogEntry[];
+  readonly createdAt: string;
+  readonly updatedAt: string;
+}
+
 /** Erro de concorrência (optimistic lock) — escrita com versão defasada (§5.2). */
 export class VersionConflictError extends Error {
   constructor(
@@ -132,4 +156,13 @@ export interface ProposalRepository {
   appendSlaEvent(event: Omit<SlaEventRow, 'id'>): Promise<void>;
   /** Lê os eventos de SLA de uma proposta em ordem cronológica (by `at`). */
   slaEvents(proposalId: string): Promise<readonly SlaEventRow[]>;
+  /** Cria uma reunião técnica (estado inicial 'solicitada'). §6.3. */
+  createMeeting(args: { proposalId: string; objective: string; by: string; scheduledFor?: string }): Promise<MeetingRecord>;
+  /** Lê as reuniões técnicas de uma proposta. */
+  meetings(proposalId: string): Promise<readonly MeetingRecord[]>;
+  /** Aplica uma transição à reunião (novo estado + entrada no log). Lança NotFoundError se não existir. */
+  updateMeeting(
+    meetingId: string,
+    patch: { state: string; logEntry: MeetingLogEntry; scheduledFor?: string },
+  ): Promise<MeetingRecord>;
 }

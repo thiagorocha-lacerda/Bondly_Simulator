@@ -25,6 +25,8 @@ import {
   reduceSla,
   defaultSlaConfig,
   buildHolidaySet,
+  canMeetingTransition,
+  MEETING_INITIAL,
   type SlaEvent,
   type TechnicalVerdict,
 } from '@bondly/pricing-engine';
@@ -151,6 +153,53 @@ export async function handleApi(args: {
       { actorEmail: session.email, role, action: 'proposal.create', toState: 'rascunho_comercial' },
     );
     return json(201, { proposal: projectProposal(p, role) });
+  }
+
+  // --- reunião técnica com o cliente (§6.3) ---
+  // listar reuniões de uma proposta
+  const mList = path.match(/^\/api\/proposals\/([A-Za-z0-9-]+)\/meetings$/);
+  if (mList && method === 'GET') {
+    if (!can(role, 'proposal.read')) return json(403, { error: 'forbidden' });
+    const id = mList[1]!;
+    const list = await repo.meetings(id);
+    return json(200, { meetings: list });
+  }
+  // solicitar uma reunião (estado inicial 'solicitada') — só quem gere o SLA técnico
+  if (mList && method === 'POST') {
+    if (!can(role, 'sla.manage')) return json(403, { error: 'forbidden' });
+    const id = mList[1]!;
+    const current = await repo.get(id);
+    if (!current) return json(404, { error: 'not_found' });
+    const b = (body ?? {}) as { objective?: unknown; scheduledFor?: unknown };
+    const objective = typeof b.objective === 'string' ? b.objective.trim() : '';
+    if (!objective) return json(400, { error: 'objective_required' });
+    const scheduledFor = typeof b.scheduledFor === 'string' ? b.scheduledFor : undefined;
+    const rec = await repo.createMeeting({ proposalId: id, objective, by: session.email, ...(scheduledFor ? { scheduledFor } : {}) });
+    // §6.4: solicitar reunião NÃO pausa o SLA automaticamente — nenhum evento de pausa é emitido aqui.
+    return json(201, { meeting: rec, slaUnaffected: true });
+  }
+  // transicionar uma reunião (agendar, realizar, aguardar/receber insumos, retomar, cancelar)
+  const mTrans = path.match(/^\/api\/proposals\/([A-Za-z0-9-]+)\/meetings\/([A-Za-z0-9-]+)\/transition$/);
+  if (mTrans && method === 'POST') {
+    if (!can(role, 'sla.manage')) return json(403, { error: 'forbidden' });
+    const meetingId = mTrans[2]!;
+    const all = await repo.meetings(mTrans[1]!);
+    const meeting = all.find((m) => m.id === meetingId);
+    if (!meeting) return json(404, { error: 'not_found' });
+    const b = (body ?? {}) as { transition?: unknown; note?: unknown; scheduledFor?: unknown };
+    const name = typeof b.transition === 'string' ? b.transition : '';
+    const decision = canMeetingTransition(meeting.state as Parameters<typeof canMeetingTransition>[0], name);
+    if (!decision.ok) return json(409, { error: `meeting_${decision.reason}` });
+    const note = typeof b.note === 'string' ? b.note : undefined;
+    // cancelamento exige justificativa (§6.3)
+    if (name === 'cancelar' && !note) return json(400, { error: 'note_required' });
+    const scheduledFor = typeof b.scheduledFor === 'string' ? b.scheduledFor : undefined;
+    const rec = await repo.updateMeeting(meetingId, {
+      state: decision.to,
+      logEntry: { at: Date.now(), by: session.email, transition: name, toState: decision.to, ...(note ? { note } : {}) },
+      ...(scheduledFor !== undefined ? { scheduledFor } : {}),
+    });
+    return json(200, { meeting: rec });
   }
 
   // --- rotas com :id ---

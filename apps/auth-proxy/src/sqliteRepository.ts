@@ -17,6 +17,8 @@ import {
   type CreateProposalArgs,
   type AuditEntry,
   type SlaEventRow,
+  type MeetingRecord,
+  type MeetingLogEntry,
   type WorkflowState,
   VersionConflictError,
   NotFoundError,
@@ -42,6 +44,19 @@ function rowToProposal(r: Record<string, unknown>): Proposal {
     commercial: JSON.parse(String(r.commercial ?? '{}')),
     ...(r.technical != null ? { technical: JSON.parse(String(r.technical)) } : {}),
     ...(r.snapshot != null ? { snapshot: JSON.parse(String(r.snapshot)) } : {}),
+    createdAt: String(r.created_at),
+    updatedAt: String(r.updated_at),
+  };
+}
+
+function rowToMeeting(r: Record<string, unknown>): MeetingRecord {
+  return {
+    id: String(r.id),
+    proposalId: String(r.proposal_id),
+    state: String(r.state),
+    objective: String(r.objective),
+    ...(r.scheduled_for != null ? { scheduledFor: String(r.scheduled_for) } : {}),
+    log: JSON.parse(String(r.log ?? '[]')) as MeetingLogEntry[],
     createdAt: String(r.created_at),
     updatedAt: String(r.updated_at),
   };
@@ -96,6 +111,17 @@ export async function createSqliteRepository(
       payload TEXT NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_sla_events_proposal ON sla_events (proposal_id, at);
+    CREATE TABLE IF NOT EXISTS meetings (
+      id TEXT PRIMARY KEY,
+      proposal_id TEXT NOT NULL,
+      state TEXT NOT NULL,
+      objective TEXT NOT NULL,
+      scheduled_for TEXT,
+      log TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_meetings_proposal ON meetings (proposal_id, created_at);
   `);
 
   function appendAudit(a: Omit<AuditEntry, 'id' | 'at'>): void {
@@ -194,6 +220,32 @@ export async function createSqliteRepository(
           by: String(r.by_email),
           payload: JSON.parse(String(r.payload ?? '{}')) as Record<string, unknown>,
         }));
+    },
+
+    async createMeeting(args): Promise<MeetingRecord> {
+      const ts = now();
+      const id = randomUUID();
+      const log: MeetingLogEntry[] = [{ at: Date.now(), by: args.by, transition: 'solicitada', toState: 'solicitada' }];
+      db.prepare(
+        `INSERT INTO meetings (id, proposal_id, state, objective, scheduled_for, log, created_at, updated_at)
+         VALUES (?, ?, 'solicitada', ?, ?, ?, ?, ?)`,
+      ).run(id, args.proposalId, args.objective, args.scheduledFor ?? null, JSON.stringify(log), ts, ts);
+      return rowToMeeting(db.prepare(`SELECT * FROM meetings WHERE id = ?`).get(id)!);
+    },
+
+    async meetings(proposalId: string): Promise<readonly MeetingRecord[]> {
+      return db.prepare(`SELECT * FROM meetings WHERE proposal_id = ? ORDER BY created_at ASC`).all(proposalId).map(rowToMeeting);
+    },
+
+    async updateMeeting(meetingId, patch): Promise<MeetingRecord> {
+      const current = db.prepare(`SELECT * FROM meetings WHERE id = ?`).get(meetingId);
+      if (!current) throw new NotFoundError(meetingId);
+      const log = [...(JSON.parse(String(current.log ?? '[]')) as MeetingLogEntry[]), patch.logEntry];
+      const scheduledFor = patch.scheduledFor !== undefined ? patch.scheduledFor : (current.scheduled_for as string | null);
+      db.prepare(
+        `UPDATE meetings SET state = ?, scheduled_for = ?, log = ?, updated_at = ? WHERE id = ?`,
+      ).run(patch.state, scheduledFor ?? null, JSON.stringify(log), now(), meetingId);
+      return rowToMeeting(db.prepare(`SELECT * FROM meetings WHERE id = ?`).get(meetingId)!);
     },
   };
 }

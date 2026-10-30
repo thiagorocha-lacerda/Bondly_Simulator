@@ -105,3 +105,71 @@ describe('SLA API (§6) — start automático, RBAC e ciclo pausa/retomada/parec
     expect(r.status).toBe(403);
   });
 });
+
+describe('Reunião técnica API (§6.3) — ciclo e regra de não-pausa (§6.4)', () => {
+  async function requestMeeting(repo: ProposalRepository, id: string) {
+    return handleApi({
+      method: 'POST',
+      path: `/api/proposals/${id}/meetings`,
+      session: sess('tech'),
+      body: { objective: 'esclarecer integrações do ERP' },
+      repo,
+      cfg,
+    });
+  }
+
+  it('§6.4 — solicitar reunião NÃO pausa o SLA (phase segue em_andamento)', async () => {
+    const repo = createMemoryRepository();
+    const id = await proposalInQueue(repo);
+    const created = await requestMeeting(repo, id);
+    expect(created.status).toBe(201);
+    expect(created.body).toMatchObject({ slaUnaffected: true, meeting: { state: 'solicitada' } });
+    // o relógio continua correndo
+    const sla = await handleApi({ method: 'GET', path: `/api/proposals/${id}/sla`, session: sess('tech'), body: null, repo, cfg });
+    expect(sla.body).toMatchObject({ sla: { phase: 'em_andamento' } });
+  });
+
+  it('solicitar exige objetivo (400 sem objective)', async () => {
+    const repo = createMemoryRepository();
+    const id = await proposalInQueue(repo);
+    const r = await handleApi({ method: 'POST', path: `/api/proposals/${id}/meetings`, session: sess('tech'), body: {}, repo, cfg });
+    expect(r.status).toBe(400);
+    expect(r.body).toMatchObject({ error: 'objective_required' });
+  });
+
+  it('Negócios NÃO pode solicitar reunião (RBAC sla.manage)', async () => {
+    const repo = createMemoryRepository();
+    const id = await proposalInQueue(repo);
+    const r = await handleApi({ method: 'POST', path: `/api/proposals/${id}/meetings`, session: sess('business', 'biz@minu.co'), body: { objective: 'x' }, repo, cfg });
+    expect(r.status).toBe(403);
+  });
+
+  it('percorre agendamento → realizada e transição inválida dá 409', async () => {
+    const repo = createMemoryRepository();
+    const id = await proposalInQueue(repo);
+    const { body } = await requestMeeting(repo, id);
+    const mid = (body as { meeting: { id: string } }).meeting.id;
+    const step = (transition: string, extra: Record<string, unknown> = {}) =>
+      handleApi({ method: 'POST', path: `/api/proposals/${id}/meetings/${mid}/transition`, session: sess('tech'), body: { transition, ...extra }, repo, cfg });
+
+    expect((await step('iniciar_agendamento')).status).toBe(200);
+    expect((await step('agendar', { scheduledFor: '2027-04-05T14:00:00-03:00' })).status).toBe(200);
+    expect((await step('realizar')).status).toBe(200);
+    // transição inválida: receber_insumos sem estar em aguardando_insumos
+    const bad = await step('receber_insumos');
+    expect(bad.status).toBe(409);
+    expect(bad.body).toMatchObject({ error: 'meeting_invalid_from' });
+  });
+
+  it('cancelamento exige justificativa (note) — 400 sem ela, 200 com ela', async () => {
+    const repo = createMemoryRepository();
+    const id = await proposalInQueue(repo);
+    const { body } = await requestMeeting(repo, id);
+    const mid = (body as { meeting: { id: string } }).meeting.id;
+    const noNote = await handleApi({ method: 'POST', path: `/api/proposals/${id}/meetings/${mid}/transition`, session: sess('tech'), body: { transition: 'cancelar' }, repo, cfg });
+    expect(noNote.status).toBe(400);
+    const ok = await handleApi({ method: 'POST', path: `/api/proposals/${id}/meetings/${mid}/transition`, session: sess('tech'), body: { transition: 'cancelar', note: 'cliente desmarcou' }, repo, cfg });
+    expect(ok.status).toBe(200);
+    expect(ok.body).toMatchObject({ meeting: { state: 'cancelada' } });
+  });
+});

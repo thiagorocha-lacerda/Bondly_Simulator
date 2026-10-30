@@ -14,6 +14,8 @@ import {
   type CreateProposalArgs,
   type AuditEntry,
   type SlaEventRow,
+  type MeetingRecord,
+  type MeetingLogEntry,
   VersionConflictError,
   NotFoundError,
 } from './domain.js';
@@ -22,6 +24,7 @@ export function createMemoryRepository(now: () => string = () => new Date().toIS
   const proposals = new Map<string, Proposal>();
   const audits = new Map<string, AuditEntry[]>();
   const slaByProposal = new Map<string, SlaEventRow[]>();
+  const meetings = new Map<string, MeetingRecord>();
   let seq = 0;
 
   function appendAudit(proposalId: string, a: Omit<AuditEntry, 'id' | 'proposalId' | 'at'>): void {
@@ -94,6 +97,40 @@ export function createMemoryRepository(now: () => string = () => new Date().toIS
 
     async slaEvents(proposalId: string): Promise<readonly SlaEventRow[]> {
       return [...(slaByProposal.get(proposalId) ?? [])].sort((a, b) => a.at - b.at);
+    },
+
+    async createMeeting(args): Promise<MeetingRecord> {
+      const ts = now();
+      const rec: MeetingRecord = {
+        id: randomUUID(),
+        proposalId: args.proposalId,
+        state: 'solicitada',
+        objective: args.objective,
+        ...(args.scheduledFor ? { scheduledFor: args.scheduledFor } : {}),
+        log: [{ at: Date.now(), by: args.by, transition: 'solicitada', toState: 'solicitada' }],
+        createdAt: ts,
+        updatedAt: ts,
+      };
+      meetings.set(rec.id, rec);
+      return rec;
+    },
+
+    async meetings(proposalId: string): Promise<readonly MeetingRecord[]> {
+      return [...meetings.values()].filter((m) => m.proposalId === proposalId).sort((a, b) => (a.createdAt < b.createdAt ? -1 : 1));
+    },
+
+    async updateMeeting(meetingId, patch): Promise<MeetingRecord> {
+      const current = meetings.get(meetingId);
+      if (!current) throw new NotFoundError(meetingId);
+      const next: MeetingRecord = {
+        ...current,
+        state: patch.state,
+        ...(patch.scheduledFor !== undefined ? { scheduledFor: patch.scheduledFor } : {}),
+        log: [...current.log, patch.logEntry],
+        updatedAt: now(),
+      };
+      meetings.set(meetingId, next);
+      return next;
     },
   };
 }

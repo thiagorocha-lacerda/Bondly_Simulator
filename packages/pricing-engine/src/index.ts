@@ -110,3 +110,10 @@ export type {
   SlaConfig,
   SlaState,
 } from './sla/clock.js';
+export {
+  canMeetingTransition,
+  isMeetingTransition,
+  isMeetingTerminal,
+  MEETING_INITIAL,
+} from './sla/meeting.js';
+export type { MeetingState, MeetingTransition, MeetingDecision } from './sla/meeting.js';
