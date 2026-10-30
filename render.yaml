@@ -1,67 +1,47 @@
-# Render Blueprint — Bondly Commercial Platform (§27 / Autenticação Opção B)
+# Render Blueprint — Bondly PREVIEW ESTÁTICO (validação interna da UI)
 #
-# ARQUITETURA (Opção B — login Google + proxy de borda):
-# O deploy deixa de ser Static Site e passa a ser um WEB SERVICE Node (@bondly/auth-proxy) que:
-#   1. faz o OAuth Google (Authorization Code + PKCE) e valida o ID token NO SERVIDOR;
-#   2. autoriza por domínio exato (minu.co, minutrade.com, grupoarka.co, brain3.com.br, coremidia.co);
-#   3. cria sessão em cookie HttpOnly/Secure/SameSite e SÓ ENTÃO serve o dist do SPA.
-# Sem sessão válida o navegador nem baixa o bundle — a proteção não é apenas visual.
+# ⚠️ ISTO NÃO É O DEPLOY DE PRODUÇÃO. É um Static Site só para VALIDAR A INTERFACE internamente,
+# protegido por uma senha COSMÉTICA (verificada no browser — ver src/app/PreviewGate.tsx).
+# Decisão consciente: validação interna, sem link externo. A senha e os dados vão no bundle.
 #
-# LIMITE HONESTO (§5): as regras de pricing seguem no bundle entregue a um usuário AUTORIZADO.
-# Este proxy barra quem não tem sessão; não cifra o conteúdo de quem já entrou. Mover cálculo/dados
-# para o servidor seria a Opção A. Ver docs/09-autenticacao-e-seguranca.md.
+# O DEPLOY SEGURO DE PRODUÇÃO é o Web Service em `render.yaml` (OAuth Google + RBAC + 2º fator +
+# APIs filtradas por papel). Este arquivo NÃO o substitui — coexiste.
+#
+# O QUE FUNCIONA neste preview: simulador, waterfall de descontos, Setup, tiers, PDF — tudo que
+# calcula no browser. O QUE NÃO FUNCIONA: login por papel e a esteira (dependem de /api/*, que
+# não existe num Static Site) — ficam naturalmente ocultos (user=null -> sem gate de perfil,
+# sem WorkflowStepper).
+#
+# COMO APLICAR: no Render, New Blueprint Instance -> aponte este arquivo (render.preview.yaml),
+# ou renomeie-o para render.yaml num branch de preview. Configure VITE_PREVIEW_PASSWORD no painel.
 #
 # Docs: https://render.com/docs/blueprint-spec
 
 services:
   - type: web
+    runtime: static
     name: bondly-simulator2
-    runtime: node
-    # Plano Free (US$ 0): roda o backend Node completo (OAuth/RBAC/2º fator/APIs/esteira).
-    # Trade-offs do Free: dorme após ~15 min de inatividade (cold start ~30-50s) e NÃO persiste
-    # (sem Disk, o repositório cai para in-memory — propostas somem em cada redeploy/sleep).
-    # Para persistência real, voltar a plan: starter + o bloco disk + DATA_DIR=/var/data.
-    plan: free
-    # Build do monorepo: compila o SPA (dist) e o servidor TypeScript (dist/server.js).
-    buildCommand: npm ci && npm run build --workspace @bondly/pricing-engine && npm run build --workspace @bondly/commercial-workspace && npm run build --workspace @bondly/auth-proxy
-    startCommand: npm run start --workspace @bondly/auth-proxy
-    healthCheckPath: /healthz
-    autoDeploy: true
+    # Build do monorepo a partir da raiz: npm ci instala tudo; o Vite resolve o pricing-engine
+    # pela fonte (alias) e gera o dist do SPA. VITE_PREVIEW_MODE liga o gate de senha no bundle.
+    buildCommand: npm ci && npm run build --workspace @bondly/commercial-workspace
+    staticPublishPath: apps/commercial-workspace/dist
+    # SPA: toda rota desconhecida cai no index.html (client-side routing).
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Cabeçalhos: evita indexação e cache agressivo de um preview efêmero.
+    headers:
+      - path: /*
+        name: X-Robots-Tag
+        value: noindex, nofollow
     envVars:
       - key: NODE_VERSION
         value: "22"
-      - key: NODE_ENV
-        value: production
-      # STATIC_DIR aponta para o dist do SPA relativo ao processo do servidor.
-      - key: STATIC_DIR
-        value: /opt/render/project/src/apps/commercial-workspace/dist
-      # PUBLIC_URL deve ser a URL pública real do serviço (ou domínio personalizado).
-      # Fixada no host do novo Web Service; se o Render gerar sufixo diferente, ajuste no painel.
-      - key: PUBLIC_URL
-        value: https://bondly-simulator2.onrender.com
-      # Segredos — configurar no painel (Environment), NUNCA commitar:
-      - key: GOOGLE_CLIENT_ID
+      # Liga o PreviewGate (senha no front). Sem isto, o gate é inerte.
+      - key: VITE_PREVIEW_MODE
+        value: "true"
+      # Senha ÚNICA de acesso — embutida no bundle no build (cosmética; ver PreviewGate.tsx).
+      # Configurar no painel (Environment). Trocar a cada ciclo de validação.
+      - key: VITE_PREVIEW_PASSWORD
         sync: false
-      - key: GOOGLE_CLIENT_SECRET
-        sync: false
-      - key: SESSION_SECRET
-        generateValue: true
-      # Persistência (Fase 3): DESATIVADA no plano Free (sem Disk) — o repositório usa in-memory,
-      # que NÃO sobrevive a redeploy/sleep. Para ligar SQLite persistente, re-adicione:
-      #   - key: DATA_DIR
-      #     value: /var/data
-      # e o bloco `disk:` no fim do serviço, e troque plan: free -> starter.
-      # Códigos de perfil (2º fator §7.2) — HASHES scrypt gerados com scryptHasher.hash, NUNCA o código
-      # em texto puro. Opcionais: um papel sem hash fica inatingível. Configurar no painel.
-      - key: PROFILE_CODE_HASH_BUSINESS
-        sync: false
-      - key: PROFILE_CODE_HASH_TECH
-        sync: false
-      - key: PROFILE_CODE_HASH_ADMIN
-        sync: false
-    # Sem `disk:` — plano Free não suporta Disk e o repositório roda in-memory.
-    # Persistência real = voltar a plan: starter, re-adicionar DATA_DIR e o bloco disk abaixo:
-    #   disk:
-    #     name: bondly-data
-    #     mountPath: /var/data
-    #     sizeGB: 1
