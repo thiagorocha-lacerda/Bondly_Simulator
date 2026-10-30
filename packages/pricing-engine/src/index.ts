@@ -91,3 +91,22 @@ export type { ProposalSnapshot, ProposalB2c } from './versioning/proposal.js';
 
 // Utilidades monetárias
 export { roundCurrency, toCents, fromCents, clamp, pctToFraction, finiteOr } from './calculations/money.js';
+
+// SLA técnico (§6) — motor de dias úteis + relógio auditável de pausas/retomadas
+export {
+  toSpCivil,
+  isBusinessDay,
+  businessDaysBetween,
+  addBusinessDays,
+} from './sla/businessDays.js';
+export type { Instant, SpDate } from './sla/businessDays.js';
+export { BR_NATIONAL_HOLIDAYS, buildHolidaySet } from './sla/holidays.js';
+export { reduceSla, defaultSlaConfig } from './sla/clock.js';
+export type {
+  SlaEvent,
+  TechnicalVerdict,
+  SlaPhase,
+  SlaHealth,
+  SlaConfig,
+  SlaState,
+} from './sla/clock.js';
