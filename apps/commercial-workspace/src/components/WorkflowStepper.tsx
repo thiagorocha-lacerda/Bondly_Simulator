@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Panel } from './Fields';
 import type { ProposalView, UseProposals } from '../hooks/useProposals';
+import { SlaCard } from './SlaCard';
+import { SlaDashboard } from './SlaDashboard';
 
 type Role = 'business' | 'tech' | 'admin';
 
@@ -92,6 +94,8 @@ export function WorkflowStepper(props: { role: Role; proposals: UseProposals }) 
 
       {proposals.loading && <p className="sub">Carregando…</p>}
 
+      <SlaDashboard proposals={proposals.proposals} role={role} enabled={proposals.available} />
+
       {proposals.proposals.map((p) => {
         const idx = PHASES.findIndex((f) => f.state === p.status);
         const phase = PHASES.find((f) => f.state === p.status);
@@ -137,6 +141,9 @@ export function WorkflowStepper(props: { role: Role; proposals: UseProposals }) 
                 ))}
               </div>
             )}
+
+            {/* SLA técnico (§6): relógio + ações de P&T + reuniões */}
+            <SlaCard proposalId={p.id} role={role} enabled={proposals.available} />
           </div>
         );
       })}
