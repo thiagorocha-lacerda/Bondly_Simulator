@@ -13,6 +13,7 @@ import {
   type ProposalRepository,
   type CreateProposalArgs,
   type AuditEntry,
+  type SlaEventRow,
   VersionConflictError,
   NotFoundError,
 } from './domain.js';
@@ -20,6 +21,7 @@ import {
 export function createMemoryRepository(now: () => string = () => new Date().toISOString()): ProposalRepository {
   const proposals = new Map<string, Proposal>();
   const audits = new Map<string, AuditEntry[]>();
+  const slaByProposal = new Map<string, SlaEventRow[]>();
   let seq = 0;
 
   function appendAudit(proposalId: string, a: Omit<AuditEntry, 'id' | 'proposalId' | 'at'>): void {
@@ -81,6 +83,17 @@ export function createMemoryRepository(now: () => string = () => new Date().toIS
 
     async audit(id: string): Promise<readonly AuditEntry[]> {
       return [...(audits.get(id) ?? [])];
+    },
+
+    async appendSlaEvent(event: Omit<SlaEventRow, 'id'>): Promise<void> {
+      const row: SlaEventRow = { ...event, id: randomUUID() };
+      const list = slaByProposal.get(event.proposalId) ?? [];
+      list.push(row);
+      slaByProposal.set(event.proposalId, list);
+    },
+
+    async slaEvents(proposalId: string): Promise<readonly SlaEventRow[]> {
+      return [...(slaByProposal.get(proposalId) ?? [])].sort((a, b) => a.at - b.at);
     },
   };
 }

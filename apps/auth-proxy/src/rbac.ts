@@ -29,6 +29,8 @@ export type Action =
   | 'proposal.validate_technical'
   | 'proposal.emit'
   | 'proposal.read_audit_full'
+  | 'sla.manage' // pausar/retomar/concluir o relógio técnico (§6.3/§6.4)
+  | 'sla.configure' // alterar prazo/calendário do SLA (§6.2 — só admin)
   | 'admin.manage_users';
 
 /** Matriz inicial (§6.1) — refinável após auditoria das necessidades reais. */
@@ -46,11 +48,14 @@ const MATRIX: Readonly<Record<Role, ReadonlySet<Action>>> = {
     'proposal.see_internal',
     'proposal.validate_technical',
     'proposal.read_audit_full',
+    'sla.manage', // P&T opera o relógio técnico: pausa justificada, retomada, parecer (§6.3/§6.4)
   ]),
   admin: new Set<Action>([
     'proposal.read',
     'proposal.see_internal',
     'proposal.read_audit_full',
+    'sla.manage',
+    'sla.configure', // §6.2: prazo/calendário do SLA só mudam por admin, com trilha de auditoria
     'admin.manage_users',
   ]),
 };

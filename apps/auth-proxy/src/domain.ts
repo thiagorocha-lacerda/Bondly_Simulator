@@ -61,6 +61,23 @@ export interface AuditEntry {
   readonly at: string;
 }
 
+/**
+ * Evento de SLA técnico persistido (§6). É APPEND-ONLY, como a auditoria: o estado do relógio
+ * (consumido/restante/status) é SEMPRE DERIVADO destes eventos via reduceSla() do pricing-engine,
+ * nunca armazenado — assim não há estado duplicado que possa divergir. `at` é epoch-millis (o engine
+ * trabalha com Instant), diferente do `at` ISO da auditoria.
+ */
+export interface SlaEventRow {
+  readonly id: string;
+  readonly proposalId: string;
+  /** started | paused | resumed | completed (mesmos kinds do SlaEvent do engine). */
+  readonly kind: 'started' | 'paused' | 'resumed' | 'completed';
+  readonly at: number; // epoch-millis
+  readonly by: string; // email do ator
+  /** Carga específica do kind, serializada (reason/missingItems/confirmedItems/verdict/briefingVersion). */
+  readonly payload: Record<string, unknown>;
+}
+
 export interface CreateProposalArgs {
   readonly id: string;
   readonly ownerEmail: string;
@@ -111,4 +128,8 @@ export interface ProposalRepository {
     audit: Omit<AuditEntry, 'id' | 'proposalId' | 'at'>,
   ): Promise<Proposal>;
   audit(id: string): Promise<readonly AuditEntry[]>;
+  /** Anexa um evento de SLA (append-only). O estado do relógio é derivado destes via reduceSla. */
+  appendSlaEvent(event: Omit<SlaEventRow, 'id'>): Promise<void>;
+  /** Lê os eventos de SLA de uma proposta em ordem cronológica (by `at`). */
+  slaEvents(proposalId: string): Promise<readonly SlaEventRow[]>;
 }

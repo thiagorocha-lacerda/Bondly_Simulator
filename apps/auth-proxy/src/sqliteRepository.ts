@@ -16,6 +16,7 @@ import {
   type ProposalRepository,
   type CreateProposalArgs,
   type AuditEntry,
+  type SlaEventRow,
   type WorkflowState,
   VersionConflictError,
   NotFoundError,
@@ -86,6 +87,15 @@ export async function createSqliteRepository(
     );
     CREATE TABLE IF NOT EXISTS seq (k TEXT PRIMARY KEY, v INTEGER NOT NULL);
     INSERT OR IGNORE INTO seq (k, v) VALUES ('proposal', 0);
+    CREATE TABLE IF NOT EXISTS sla_events (
+      id TEXT PRIMARY KEY,
+      proposal_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      at INTEGER NOT NULL,
+      by_email TEXT NOT NULL,
+      payload TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_sla_events_proposal ON sla_events (proposal_id, at);
   `);
 
   function appendAudit(a: Omit<AuditEntry, 'id' | 'at'>): void {
@@ -163,6 +173,26 @@ export async function createSqliteRepository(
           ...(r.to_state != null ? { toState: String(r.to_state) as WorkflowState } : {}),
           ...(r.note != null ? { note: String(r.note) } : {}),
           at: String(r.at),
+        }));
+    },
+
+    async appendSlaEvent(event: Omit<SlaEventRow, 'id'>): Promise<void> {
+      db.prepare(
+        `INSERT INTO sla_events (id, proposal_id, kind, at, by_email, payload) VALUES (?, ?, ?, ?, ?, ?)`,
+      ).run(randomUUID(), event.proposalId, event.kind, event.at, event.by, JSON.stringify(event.payload));
+    },
+
+    async slaEvents(proposalId: string): Promise<readonly SlaEventRow[]> {
+      return db
+        .prepare(`SELECT * FROM sla_events WHERE proposal_id = ? ORDER BY at ASC`)
+        .all(proposalId)
+        .map((r) => ({
+          id: String(r.id),
+          proposalId: String(r.proposal_id),
+          kind: String(r.kind) as SlaEventRow['kind'],
+          at: Number(r.at),
+          by: String(r.by_email),
+          payload: JSON.parse(String(r.payload ?? '{}')) as Record<string, unknown>,
         }));
     },
   };

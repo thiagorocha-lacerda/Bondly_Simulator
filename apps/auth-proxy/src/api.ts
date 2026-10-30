@@ -14,12 +14,57 @@ import {
   type ProposalRepository,
   type CommercialInput,
   type TechnicalInput,
+  type SlaEventRow,
   VersionConflictError,
   NotFoundError,
   formatProposalId,
 } from './domain.js';
 import { projectProposal, projectAudit } from './projection.js';
 import { canTransition, invalidationOnEdit, isMaterialChange } from './workflow.js';
+import {
+  reduceSla,
+  defaultSlaConfig,
+  buildHolidaySet,
+  type SlaEvent,
+  type TechnicalVerdict,
+} from '@bondly/pricing-engine';
+
+/** Calendário de feriados efetivo do SLA (base nacional BR; extras viriam da config). */
+const SLA_HOLIDAYS = buildHolidaySet();
+const SLA_CONFIG = defaultSlaConfig(SLA_HOLIDAYS);
+
+/** Reconstrói os eventos tipados do engine a partir das rows persistidas (ordenadas por `at`). */
+function toEngineEvents(rows: readonly SlaEventRow[]): SlaEvent[] {
+  return [...rows]
+    .sort((a, b) => a.at - b.at)
+    .map((r): SlaEvent => {
+      const p = r.payload;
+      switch (r.kind) {
+        case 'started':
+          return { kind: 'started', at: r.at, by: r.by, briefingVersion: Number(p.briefingVersion ?? 1) };
+        case 'paused':
+          return {
+            kind: 'paused',
+            at: r.at,
+            by: r.by,
+            reason: String(p.reason ?? ''),
+            missingItems: Array.isArray(p.missingItems) ? (p.missingItems as string[]) : [],
+          };
+        case 'resumed':
+          return {
+            kind: 'resumed',
+            at: r.at,
+            by: r.by,
+            confirmedItems: Array.isArray(p.confirmedItems) ? (p.confirmedItems as string[]) : [],
+          };
+        case 'completed': {
+          const verdicts: readonly TechnicalVerdict[] = ['aprovado', 'aprovado_com_ressalvas', 'ajustes_necessarios', 'inviavel'];
+          const v = verdicts.includes(p.verdict as TechnicalVerdict) ? (p.verdict as TechnicalVerdict) : 'aprovado';
+          return { kind: 'completed', at: r.at, by: r.by, verdict: v };
+        }
+      }
+    });
+}
 
 export interface ApiResult {
   readonly status: number;
@@ -109,7 +154,7 @@ export async function handleApi(args: {
   }
 
   // --- rotas com :id ---
-  const m = path.match(/^\/api\/proposals\/([A-Za-z0-9-]+)(\/(commercial|technical|audit|transition))?$/);
+  const m = path.match(/^\/api\/proposals\/([A-Za-z0-9-]+)(\/(commercial|technical|audit|transition|sla|sla\/pause|sla\/resume|sla\/complete))?$/);
   if (m) {
     const id = m[1]!;
     const sub = m[3];
@@ -188,6 +233,50 @@ export async function handleApi(args: {
       }
     }
 
+    // --- SLA técnico (§6) ---
+    if (sub === 'sla' && method === 'GET') {
+      if (!can(role, 'proposal.read')) return json(403, { error: 'forbidden' });
+      const current = await repo.get(id);
+      if (!current) return json(404, { error: 'not_found' });
+      const rows = await repo.slaEvents(id);
+      const state = reduceSla(toEngineEvents(rows), Date.now(), SLA_CONFIG);
+      return json(200, { sla: state });
+    }
+
+    // pausar / retomar / concluir o relógio — exige sla.manage (tech/admin)
+    if ((sub === 'sla/pause' || sub === 'sla/resume' || sub === 'sla/complete') && method === 'POST') {
+      if (!can(role, 'sla.manage')) return json(403, { error: 'forbidden' });
+      const current = await repo.get(id);
+      if (!current) return json(404, { error: 'not_found' });
+      const rows = await repo.slaEvents(id);
+      const prior = reduceSla(toEngineEvents(rows), Date.now(), SLA_CONFIG);
+      const sb = (body ?? {}) as Record<string, unknown>;
+
+      if (sub === 'sla/pause') {
+        // §6.4: só pausa se o relógio está em andamento; justificativa obrigatória.
+        if (prior.phase !== 'em_andamento') return json(409, { error: 'sla_not_running' });
+        const reason = typeof sb.reason === 'string' ? sb.reason.trim() : '';
+        if (!reason) return json(400, { error: 'reason_required' });
+        const missingItems = Array.isArray(sb.missingItems) ? (sb.missingItems as unknown[]).map(String) : [];
+        await repo.appendSlaEvent({ proposalId: id, kind: 'paused', at: Date.now(), by: session.email, payload: { reason, missingItems } });
+      } else if (sub === 'sla/resume') {
+        if (prior.phase !== 'pausado') return json(409, { error: 'sla_not_paused' });
+        const confirmedItems = Array.isArray(sb.confirmedItems) ? (sb.confirmedItems as unknown[]).map(String) : [];
+        await repo.appendSlaEvent({ proposalId: id, kind: 'resumed', at: Date.now(), by: session.email, payload: { confirmedItems } });
+      } else {
+        // sla/complete — emite o parecer técnico e congela o relógio.
+        if (prior.phase === 'nao_iniciado' || prior.phase === 'concluido') return json(409, { error: 'sla_not_active' });
+        const verdicts = ['aprovado', 'aprovado_com_ressalvas', 'ajustes_necessarios', 'inviavel'];
+        const verdict = typeof sb.verdict === 'string' && verdicts.includes(sb.verdict) ? sb.verdict : '';
+        if (!verdict) return json(400, { error: 'verdict_required' });
+        await repo.appendSlaEvent({ proposalId: id, kind: 'completed', at: Date.now(), by: session.email, payload: { verdict } });
+      }
+
+      const rowsAfter = await repo.slaEvents(id);
+      const state = reduceSla(toEngineEvents(rowsAfter), Date.now(), SLA_CONFIG);
+      return json(200, { sla: state });
+    }
+
     if (sub === 'transition' && method === 'POST') {
       const b = (body ?? {}) as { version?: unknown; transition?: unknown; note?: unknown };
       const v = num(b.version);
@@ -210,6 +299,21 @@ export async function handleApi(args: {
           { status: decision.to },
           { actorEmail: session.email, role, action: `transition.${name}`, fromState: current.status, toState: decision.to, ...(note ? { note } : {}) },
         );
+        // §6.1 — marco inicial do SLA: ao submeter para análise, o relógio técnico inicia na entrada
+        // da fila (briefing completo e encaminhado). Idempotente: só o primeiro 'started' vale.
+        if (name === 'submeter_analise') {
+          const existing = await repo.slaEvents(id);
+          const hasStarted = existing.some((e) => e.kind === 'started');
+          if (!hasStarted) {
+            await repo.appendSlaEvent({
+              proposalId: id,
+              kind: 'started',
+              at: Date.now(),
+              by: session.email,
+              payload: { briefingVersion: p.version },
+            });
+          }
+        }
         return json(200, { proposal: projectProposal(p, role) });
       } catch (e) {
         return mapRepoError(e);
