@@ -34,6 +34,11 @@ jobs:
       - name: Install (workspaces)
         run: npm ci
 
+      - name: Build do Pricing Engine (dependência buildada dos demais workspaces)
+        # O engine expõe dist/index.js em package.json#exports; auth-proxy o consome pelo dist.
+        # Precisa existir ANTES de typecheck/testes — senão a resolução do pacote falha no runner limpo.
+        run: npm run build --workspace @bondly/pricing-engine
+
       - name: Typecheck (todos os workspaces)
         run: npm run typecheck
 
