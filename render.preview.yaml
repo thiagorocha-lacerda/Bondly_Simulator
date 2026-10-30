@@ -1,0 +1,47 @@
+# Render Blueprint — Bondly PREVIEW ESTÁTICO (validação interna da UI)
+#
+# ⚠️ ISTO NÃO É O DEPLOY DE PRODUÇÃO. É um Static Site só para VALIDAR A INTERFACE internamente,
+# protegido por uma senha COSMÉTICA (verificada no browser — ver src/app/PreviewGate.tsx).
+# Decisão consciente: validação interna, sem link externo. A senha e os dados vão no bundle.
+#
+# O DEPLOY SEGURO DE PRODUÇÃO é o Web Service em `render.yaml` (OAuth Google + RBAC + 2º fator +
+# APIs filtradas por papel). Este arquivo NÃO o substitui — coexiste.
+#
+# O QUE FUNCIONA neste preview: simulador, waterfall de descontos, Setup, tiers, PDF — tudo que
+# calcula no browser. O QUE NÃO FUNCIONA: login por papel e a esteira (dependem de /api/*, que
+# não existe num Static Site) — ficam naturalmente ocultos (user=null -> sem gate de perfil,
+# sem WorkflowStepper).
+#
+# COMO APLICAR: no Render, New Blueprint Instance -> aponte este arquivo (render.preview.yaml),
+# ou renomeie-o para render.yaml num branch de preview. Configure VITE_PREVIEW_PASSWORD no painel.
+#
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    runtime: static
+    name: bondly-simulator2
+    # Build do monorepo a partir da raiz: npm ci instala tudo; o Vite resolve o pricing-engine
+    # pela fonte (alias) e gera o dist do SPA. VITE_PREVIEW_MODE liga o gate de senha no bundle.
+    buildCommand: npm ci && npm run build --workspace @bondly/commercial-workspace
+    staticPublishPath: apps/commercial-workspace/dist
+    # SPA: toda rota desconhecida cai no index.html (client-side routing).
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Cabeçalhos: evita indexação e cache agressivo de um preview efêmero.
+    headers:
+      - path: /*
+        name: X-Robots-Tag
+        value: noindex, nofollow
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Liga o PreviewGate (senha no front). Sem isto, o gate é inerte.
+      - key: VITE_PREVIEW_MODE
+        value: "true"
+      # Senha ÚNICA de acesso — embutida no bundle no build (cosmética; ver PreviewGate.tsx).
+      # Configurar no painel (Environment). Trocar a cada ciclo de validação.
+      - key: VITE_PREVIEW_PASSWORD
+        sync: false
